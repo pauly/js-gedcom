@@ -1,0 +1,45 @@
+{
+  "name": "js-gedcom",
+  "version": "1.0.0",
+  "description": "A gedcom parser in javscript (nodejs) to parse a gedcom file and create web content, including schema.org microformats.",
+  "main": "src/person.js",
+  "scripts": {
+    "build": "./build.js > docs/index.html",
+    "lint": "make-up src test",
+    "test": "npm run lint && npm run test:coverage",
+    "test:coverage": "istanbul cover _mocha",
+    "test:watch": "NODE_PATH=${PWD} mocha --watch",
+    "posttest": "istanbul check-coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:pauly/js-gedcom.git"
+  },
+  "keywords": [
+    "gedcom",
+    "microformats",
+    "genealogy",
+    "clarkeology",
+    "family tree"
+  ],
+  "author": "Paul Clarke",
+  "license": "MIT",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "dependencies": {
+    "line-by-line": "^0.1.5",
+    "moment": "^2.15.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "dirty-chai": "^1.2.2",
+    "istanbul": "^0.4.5",
+    "make-up": "^9.3.1",
+    "mocha": "^3.0.2",
+    "mysql": "^2.11.1",
+    "sinon": "^1.17.5",
+    "sinon-chai": "^2.8.0"
+  }
+}
