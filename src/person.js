@@ -102,7 +102,7 @@ Person.prototype._partOfName = function(part, link, years) {
   var html = '<a href="' + this.link() + '" itemprop="url sameAs">';
   html += '<span itemprop="name">' + name + '</span>';
   if (years) {
-    html += this.years(true);
+    html += ' ' + this.years(true);
   }
   html += '</a>';
   return html;
@@ -228,6 +228,9 @@ Person.prototype.children = function() {
         this._children.push(Person.singleton(child));
       }
     }.bind(this));
+    this._children.sort(function(a, b) {
+      return a._year() - b._year();
+    });
   }
   return this._children;
 };
@@ -356,8 +359,7 @@ Person.prototype.table = function() {
   html += '    <td class="self" colspan="' + c * 8 + '">\n';
   html += '      <span itemprop="name">';
   html += this.name();
-  html += '</span>\n';
-  html += '      ' + this.years(true) + '\n';
+  html += '</span> ' + this.years(true) + '\n';
   html += '      ' + this._place('BIRT', 'birthPlace', '') + '\n';
   html += '      ' + this._place('DEAT', 'deathPlace', '') + '\n';
   if (!this.isPrivate()) {
@@ -475,22 +477,28 @@ Person.prototype.relationship = function(people) {
   for (var person of people) {
     var relationship = this._relationship(person);
     if (relationship) {
-      return this.name() + ' is ' + relationship + ' to ' + person.name(true);
+      return this.shortName() + ' is ' + relationship + ' to ' + person.name(true);
     }
   }
   return null;
 };
 
+// once, twice, three times a lady...
 Person.commodore = function(number) {
   if (number === 1) return Person.i18n('once');
   if (number === 2) return Person.i18n('twice');
-  return number + ' ' + Person.i18n('times');
+  return number + 'x';
 };
 
 Person.ordinal = function(number) {
   if ((number % 100) >= 11 && (number % 100) <= 13) return number + 'th';
   var ends = ['th', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th'];
   return number + ends[number % 10];
+};
+
+Person.ordinalSuperlative = function(number, superlative) {
+  if (number == 1) return Person.i18n(superlative);
+  return Person.ordinal(number) + ' ' + Person.i18n(superlative);
 };
 
 Person.prototype._relationship = function(person) {
@@ -615,6 +623,76 @@ Person.prototype.notes = function() {
   return notes.join('<br />');
 };
 
+Person.prototype.context = function() {
+  var birthYear = this._year();
+  if (!birthYear) return '';
+  if (birthYear >= 1509 && birthYear <= 1533) return 'born when Henry VIII was on his first wife';
+  if (birthYear >= 1509 && birthYear <= 1547) return 'born during the reign of Henry VIII';
+  if (birthYear >= 1485 && birthYear <= 1509) return 'born during the reign of Henry VII';
+  if (birthYear >= 1547 && birthYear <= 1553) return 'born during the reign of Edward VI';
+  if (birthYear >= 1553 && birthYear <= 1558) return 'born during the reign of Mary I';
+  if (birthYear >= 1558 && birthYear <= 1603) return 'born during the reign of Elizabeth I';
+  if (birthYear >= 1558 && birthYear <= 1603) return 'born during the reign of Elizabeth I';
+  if (birthYear >= 1760 && birthYear <= 1840) return 'born during the industrial revolution';
+  if (birthYear < 1760) return 'born before the industrial revolution';
+  return '';
+};
+
+Person.prototype.howFarBack = function() {
+  var furthestBack = this.ancestorIDs().reduce(function(data, id) {
+    var person = Person.singleton('I' + id);
+    var level = this.hasAncestor(person, 1);
+    if (level > data.level) data = { level: level, person: person };
+    return data;
+  }.bind(this), { level: 0, person: null });
+  if (furthestBack.level < 3) return '';
+  var context = furthestBack.person.context();
+  return ['We can go back ', furthestBack.level, ' generations to ', furthestBack.person.name(true, true), context].join(' ') + '.';
+};
+
+Person.prototype.ancestorStats = function() {
+  var prose = [];
+  prose.push('We have ' + this.ancestorIDs().length + ' ancestors for ' + this.shortName());
+  if (this.father().id()) {
+    prose.push(', ' + this.father().ancestorIDs().length + ' for ' + this.personalPronoun() + ' ' + Person.i18n('father') + ' ' + this.father().shortName());
+  }
+  if (this.mother().id()) {
+    prose.push(', ' + this.mother().ancestorIDs().length + ' for ' + this.personalPronoun() + ' ' + Person.i18n('mother') + ' ' + this.mother().shortName());
+  }
+  prose.push('. ');
+  return prose.join('');
+};
+
+Person.prototype.descendentStats = function() {
+  var prose = [];
+  var descendents = this.descendentIDs();
+  if (descendents.length) {
+    prose.push('We have ' + descendents.length + ' descendents for ' + this.shortName() + '. ');
+  }
+  return prose.join('');
+};
+
+Person.prototype.nameStats = function() {
+  var prose = [];
+  prose.push('We have ' + Object.keys(Person._gedcom.INDI).length + ' people in this family tree');
+  var countBySurname = Object.keys(Person._gedcom.INDI).reduce(function(count, id) {
+    var person = Person.singleton(id);
+    var surname = person.surname().toLowerCase();
+    if (!count.hasOwnProperty(surname)) count[surname] = 0;
+    count[surname] ++;
+    return count;
+  }, {});
+  var surnamePopularity = Object.keys(countBySurname).sort(function(a, b) {
+    return countBySurname[b] - countBySurname[a];
+  });
+  var lowerCaseSurname = this.surname().toLowerCase();
+  prose.push(', including ' + countBySurname[lowerCaseSurname] + ' called ' + this.surname() + '. ');
+  if (surnamePopularity.indexOf(lowerCaseSurname) < 10) {
+    prose.push(this.surname() + ' is the ' + Person.ordinalSuperlative(surnamePopularity.indexOf(lowerCaseSurname) + 1, 'most common') + ' name in our tree. ');
+  }
+  return prose.join('');
+};
+
 Person.prototype.page = function() {
   var parts = [];
   if (!this.isPrivate()) {
@@ -629,7 +707,7 @@ Person.prototype.page = function() {
     var will = this.will();
     if (will) parts.push(will);
   }
-  parts.push('</p>' + this.table(!this.isPrivate()) + '<p>'); // @todo dreadful html
+  parts.push(this.table(!this.isPrivate()));
   // if (this._data.SOUR) parts.push('Source: ' + this.source(this.data('SOUR').SOUR)); // @todo
   if (this.isPrivate()) {
     parts.push('Respecting the privacy of ' + this.name() + ' (at least partly!). If you are ' + this.name() + ' and you would like more of your details removed from this site please get in touch. Likewise if you can offer more details of your family tree, please also drop me a line!'); // @todo i18n
@@ -638,37 +716,21 @@ Person.prototype.page = function() {
   parts.push(Person.i18n('mother').toUpperCase() + ' ' + this.mother().name(false, !this.mother().isPrivate()));
   if (!this.isPrivate()) {
     this.spouses().forEach(function(spouse) {
-      parts.push(Person.i18n('spouse').toUpperCase() + ' ' + spouse.name(false, !spouse.isPrivate()));
+      parts.push(Person.i18n('spouse').toUpperCase() + ' ' + spouse.name(!spouse.isPrivate(), !spouse.isPrivate()));
     });
   }
   if (!this.isPrivate()) {
     var siblings = this.siblings().map(function(sibling) {
-      return sibling.name(false, !sibling.isPrivate());
+      return sibling.name(!sibling.isPrivate(), !sibling.isPrivate());
     });
     if (siblings.length) parts.push(Person.i18n('siblings').toUpperCase() + ': ' + siblings.join(', '));
   }
 
   var prose = [];
-  prose.push('We have ' + this.ancestorIDs().length + ' ancestors for ' + this.shortName());
-  if (this.father().id()) {
-    prose.push(', ' + this.father().ancestorIDs().length + ' for ' + this.personalPronoun() + ' ' + Person.i18n('father'));
-  }
-  if (this.mother().id()) {
-    prose.push(', ' + this.mother().ancestorIDs().length + ' for ' + this.personalPronoun() + ' ' + Person.i18n('mother'));
-  }
-  prose.push('. ');
-  var descendents = this.descendentIDs();
-  if (descendents.length) {
-    prose.push('We have ' + descendents.length + ' descendents for ' + this.shortName() + '. ');
-  }
-  prose.push('We have ' + Object.keys(Person._gedcom.INDI).length + ' people in this family tree');
-  prose.push(', including ' + Object.keys(Person._gedcom.INDI).filter(function(id) {
-    var person = Person.singleton(id);
-    // console.warn(this.surname(), '==', person.surname(), '??');
-    return this.surname().toLowerCase() === person.surname().toLowerCase();
-  }.bind(this)).length + ' called ' + this.surname());
-  prose.push('.');
+  prose.push(this.ancestorStats());
+  prose.push(this.howFarBack());
+  prose.push(this.descendentStats());
+  prose.push(this.nameStats());
   parts.push(prose.join(''));
-
-  return parts.join('\n\n');
+  return '<p>' + parts.join('</p><p>') + '</p>';
 };

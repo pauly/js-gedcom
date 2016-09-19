@@ -9,22 +9,22 @@ if (process.argv.length !== 3) {
 
 Person.parse(process.argv[2], function(err, gedcom) {
   if (err) throw err;
-  console.log('<doctype html><html><head><title>js-gedcom javascript family tree parser by Paul Clarke</title>');
-  console.log('<meta name=description" content="' + encodeURIComponent(process.env.npm_package_description) + '" /><link rel="canonical" href="http://www.clarkeology.com/names/clarke/7/paul+leslie" />');
+  console.log('<!doctype html><html><head><title>js-gedcom javascript family tree parser by Paul Clarke</title>');
+  console.log('<link rel="stylesheet" type="text/css" href="http://www.clarkeology.com/css/main.css" />');
+  console.log('<meta name="description" content="' + process.env.npm_package_description.replace(/"/g, '&quot;') + '" /><link rel="canonical" href="http://www.clarkeology.com/names/clarke/7/paul+leslie" />');
   console.log('</head><body>');
   console.log('<p><a href="' + process.env.npm_package_homepage + '">' + process.env.npm_package_name + '</a>, a project on github...');
-
-  // var dad = new Person('I1', gedcom);
-  // now the whole gedcom is in a quirky format in $gedcom, try:
-  // console.log(gedcom.INDI.I1.name(), 'father is', gedcom.INDI.I1.father().name());
-  // console.log(gedcom.INDI.I1.name(), 'maternal grandfather is', gedcom.INDI.I1.mother().father().name());
-  // console.log(gedcom.INDI.I1.name(), 'maternal grandfather is', gedcom.INDI.I1.mother().father().name());
 
   var owner = (process.env.GEDCOM_OWNER || 'I1').split(/,\n*/)
     .map(function(id) {
       return Person.singleton(id, gedcom);
     });
   console.log(owner[0].page());
+
+  // now the whole gedcom is in a quirky format in $gedcom, try:
+  // console.log(gedcom.INDI.I1.name(), 'father is', gedcom.INDI.I1.father().name());
+  // console.log(gedcom.INDI.I1.name(), 'maternal grandfather is', gedcom.INDI.I1.mother().father().name());
+  // console.log(gedcom.INDI.I1.name(), 'maternal grandfather is', gedcom.INDI.I1.mother().father().name());
 
   var config = {
     host: process.env.MYSQL_HOST || 'localhost',
@@ -46,7 +46,7 @@ Person.parse(process.argv[2], function(err, gedcom) {
         if (person.father().id() > 0) {
           metaRelationship += person.father().name(false, true);
         }
-        if (person.father().id() > 0|| person.mother().id() > 0) {
+        if (person.father().id() > 0 || person.mother().id() > 0) {
           metaRelationship += ' and ';
         }
         if (person.mother().id() > 0) {
@@ -54,23 +54,21 @@ Person.parse(process.argv[2], function(err, gedcom) {
         }
       }
     }
-    // console.warn(metaRelationship);
-    var summary = person.page().replace(/>\n[\s\n]*?</g, '><') + '\n\n' + relationship;
+    var summary = person.page().replace(/\n/g, '') + '\n\n' + relationship;
     var data = [
       person.isAlive() ? 0 : 1,
       person.name(),
       person.surname(),
       'I' + person.id(),
       person.years(),
-      metaRelationship.replace(/<[^>]*?>/, ''),
+      metaRelationship.replace(/<[^>]*?>/g, ''),
       person.link(),
       summary,
       person.isPrivate()
     ];
     connection.query('replace into pgv_individuals set i_isdead = ?, i_name = ?, i_surname = ?, i_id = ?, years = ?, meta = ?, link = ?, summary = ?, private = ?', data, function(dbError) {
       if (dbError) throw dbError;
-      // if (!this.isPrivate()) console.warn('updated', this.name(false, true));
-    }.bind(person));
+    });
   }
   console.log('</body></html>');
   connection.end();
