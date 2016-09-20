@@ -9,6 +9,7 @@
     "test": "npm run lint && npm run test:coverage",
     "test:coverage": "istanbul cover _mocha",
     "test:watch": "NODE_PATH=${PWD} mocha --watch",
+    "postinstall": "chmod +x git-hooks/* && cp git-hooks/* .git/hooks",
     "posttest": "istanbul check-coverage"
   },
   "repository": {

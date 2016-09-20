@@ -3,6 +3,8 @@
 var LineByLine = require('line-by-line');
 var moment = require('moment');
 
+var historicalContext = require('./historicalContext');
+
 var Person = module.exports = function(id, gedcom) {
   this.init(id, gedcom);
 };
@@ -623,21 +625,6 @@ Person.prototype.notes = function() {
   return notes.join('<br />');
 };
 
-Person.prototype.context = function() {
-  var birthYear = this._year();
-  if (!birthYear) return '';
-  if (birthYear >= 1509 && birthYear <= 1533) return 'born when Henry VIII was on his first wife';
-  if (birthYear >= 1509 && birthYear <= 1547) return 'born during the reign of Henry VIII';
-  if (birthYear >= 1485 && birthYear <= 1509) return 'born during the reign of Henry VII';
-  if (birthYear >= 1547 && birthYear <= 1553) return 'born during the reign of Edward VI';
-  if (birthYear >= 1553 && birthYear <= 1558) return 'born during the reign of Mary I';
-  if (birthYear >= 1558 && birthYear <= 1603) return 'born during the reign of Elizabeth I';
-  if (birthYear >= 1558 && birthYear <= 1603) return 'born during the reign of Elizabeth I';
-  if (birthYear >= 1760 && birthYear <= 1840) return 'born during the industrial revolution';
-  if (birthYear < 1760) return 'born before the industrial revolution';
-  return '';
-};
-
 Person.prototype.howFarBack = function() {
   var furthestBack = this.ancestorIDs().reduce(function(data, id) {
     var person = Person.singleton('I' + id);
@@ -646,8 +633,8 @@ Person.prototype.howFarBack = function() {
     return data;
   }.bind(this), { level: 0, person: null });
   if (furthestBack.level < 3) return '';
-  var context = furthestBack.person.context();
-  return ['We can go back ', furthestBack.level, ' generations to ', furthestBack.person.name(true, true), context].join(' ') + '.';
+  var fact = historicalContext.fact(furthestBack.person._year('BIRT'), furthestBack.person._year('DEAT'));
+  return ['We can go back ', furthestBack.level, ' generations to ', furthestBack.person.name(true, true), fact].join(' ') + '. ';
 };
 
 Person.prototype.ancestorStats = function() {
@@ -728,9 +715,14 @@ Person.prototype.page = function() {
 
   var prose = [];
   prose.push(this.ancestorStats());
+  var fact = historicalContext.fact(this._year('BIRT'), this._year('DEAT'));
+  if (fact) prose.push(this.shortName() + ' lived ' + fact + '. ');
   prose.push(this.howFarBack());
   prose.push(this.descendentStats());
   prose.push(this.nameStats());
   parts.push(prose.join(''));
-  return '<p>' + parts.join('</p><p>') + '</p>';
+  return parts.map(function(content) {
+    if (content.indexOf('<table') === 0) return content;
+    return '<p>' + content + '</p>';
+  }).join('');
 };
