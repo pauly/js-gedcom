@@ -328,6 +328,44 @@ describe('Person', function() {
     });
   });
 
+  describe('genderNoun', function() {
+    beforeEach(function() {
+      sandbox.stub(paul, 'gender').returns('M');
+    });
+    it('returns the male word', function() {
+      paul.gender.returns('M');
+      expect(paul.genderNoun('foo', 'bar', 'etc')).to.equal('foo');
+    });
+    it('returns the female word', function() {
+      paul.gender.returns('F');
+      expect(paul.genderNoun('foo', 'bar', 'etc')).to.equal('bar');
+    });
+    it('returns the neutral word', function() {
+      paul.gender.returns('X');
+      expect(paul.genderNoun('foo', 'bar', 'etc')).to.equal('etc');
+    });
+    it('returns null if no neutral word', function() {
+      paul.gender.returns('X');
+      expect(paul.genderNoun('foo', 'bar')).to.be.null();
+    });
+  });
+
+  ['personalPronoun', 'childType', 'siblingType', 'parentSiblingType', 'siblingChildType', 'grandParentType', 'greatGrandParentType'].forEach(function(method) {
+    describe(method, function() {
+      var result;
+      beforeEach(function() {
+        sandbox.stub(paul, 'genderNoun').returns('foo');
+        result = paul[method]();
+      });
+      it('calls genderNoun', function() {
+        expect(paul.genderNoun).to.have.been.calledOnce();
+      });
+      it('returns the result', function() {
+        expect(result).to.equal('foo');
+      });
+    });
+  });
+
   describe('isPrivate', function() {
     it('works because user 1 is hardcoded!', function() {
       expect(paul.isPrivate()).to.be.false();
