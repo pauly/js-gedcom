@@ -25,6 +25,7 @@ Person.parse(process.argv[2], function(err, gedcom) {
   // console.log(gedcom.INDI.I1.name(), 'father is', gedcom.INDI.I1.father().name());
   // console.log(gedcom.INDI.I1.name(), 'maternal grandfather is', gedcom.INDI.I1.mother().father().name());
 
+  if (!process.env.MYSQL_USER) return;
   var config = {
     host: process.env.MYSQL_HOST || 'localhost',
     user: process.env.MYSQL_USER,

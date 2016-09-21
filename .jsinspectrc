@@ -1,0 +1,7 @@
+{
+  "threshold":     20,
+  "identifiers":   true,
+  "matches":       3,
+  "ignore":        "Test.js|Spec.js", // used as RegExp,
+  "suppress":      100
+}

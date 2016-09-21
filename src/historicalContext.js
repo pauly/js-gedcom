@@ -1,28 +1,26 @@
 'use strict';
 
-var historicalData = require('../data/historicalData');
+const historicalData = require('../data/historicalData');
 
-var historicalContext = module.exports = {};
+const historicalContext = module.exports = {};
 
-var during = function(year, line) {
-  return (year && line[0] && line[1] && year >= line[0] && year <= line[1]);
+historicalContext.during = function(year, line) {
+  return Boolean(year && line && line[0] && line[1] && year >= line[0] && year <= line[1]);
 };
 
-var before = function(year, line) {
-  return (year && line[0] && year < line[1]);
+historicalContext.before = function(year, line) {
+  return Boolean(year && line && line[0] && year < line[0]);
 };
 
-historicalContext.fact = function(birthYear, deathYear) {
+historicalContext.fact = function(birthYear, deathYear, data) {
+  if (!data) data = historicalData;
   if (!birthYear && !deathYear) return '';
-  var usableFacts = historicalData.reduce(function(facts, line) {
-    if (during(birthYear, line) || during(deathYear, line)) {
-      facts.push('during ' + line[2]);
-    }
-    if (!facts.length) {
-      if (before(birthYear, line) || before(deathYear, line)) {
-        facts.push('before ' + line[2]);
+  const usableFacts = data.reduce(function(facts, line) {
+    ['during', 'before'].forEach(function(comparison) {
+      if (historicalContext[comparison](birthYear, line) || historicalContext[comparison](deathYear, line)) {
+        facts.push(comparison + ' ' + line[2]);
       }
-    }
+    });
     return facts;
   }, []);
   return usableFacts[0] || '';

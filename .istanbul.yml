@@ -1,7 +1,7 @@
 instrumentation:
   include-all-sources: true
   excludes:
-    - example.js
+    - build.js
 check:
   global:
     statements: 80

@@ -50,15 +50,8 @@ Person.parse = function(file, callback) {
       var num = match[1] / 1;
       var tag = match[2];
       var data = match[3];
-      if (num === 1) {
-        masterTag = tag;
-        // if (!gedcom[type]) gedcom[type] = {};
-        // if (!gedcom[type][id]) gedcom[type][id] = {};
-        if (!gedcom[type][id][masterTag]) gedcom[type][id][masterTag] = {};
-        if (!gedcom[type][id][masterTag][tag]) gedcom[type][id][masterTag][tag] = [];
-        gedcom[type][id][masterTag][tag].push(data);
-        return;
-      }
+      if (num === 1) masterTag = tag;
+      if (!gedcom[type][id][masterTag]) gedcom[type][id][masterTag] = {};
       if (!gedcom[type][id][masterTag][tag]) gedcom[type][id][masterTag][tag] = [];
       gedcom[type][id][masterTag][tag].push(data);
     }
@@ -96,6 +89,7 @@ Person._trim = function(string) {
 Person.prototype._partOfName = function(part, link, years) {
   if (!part) part = 'NAME';
   if (!this.data('NAME')[part]) return 'unknown';
+  if (this.isPrivate()) return '[PRIVATE]';
   var name = this.data('NAME')[part][0].replace(/\//g, '');
   if (!link) {
     if (years) name = [name, this.years()].join(' ');
@@ -119,7 +113,6 @@ Person.prototype.link = function() {
 };
 
 Person.prototype.name = function(link, years) {
-  if (this.isPrivate()) return '[PRIVATE]';
   return this._partOfName('NAME', link, years);
 };
 
@@ -362,11 +355,13 @@ Person.prototype.table = function() {
   html += '      <span itemprop="name">';
   html += this.name();
   html += '</span> ' + this.years(true) + '\n';
-  html += '      ' + this._place('BIRT', 'birthPlace', '') + '\n';
-  html += '      ' + this._place('DEAT', 'deathPlace', '') + '\n';
+  ['BIRT', 'DEAT'].forEach(function(type) {
+    html += '      ' + this._place(type, type.toLowerCase() + 'hPlace', '') + '\n';
+  }.bind(this));
   if (!this.isPrivate()) {
+    var location = this.data('RESI').CTRY || this._place('DEAT', false, this._place('BIRT', false, 'Unknown'));
     html += '      <span itemprop="homeLocation" itemscope itemtype="http://schema.org/PostalAddress">\n';
-    html += '        <meta itemprop="description" content="' + this._place('DEAT', false, this._place('BIRT', false, 'Unknown')) + '" />\n';
+    html += '        <meta itemprop="description" content="' + location + '" />\n';
     html += '      </span>\n';
   }
   html += '    </td>\n';
@@ -398,12 +393,14 @@ Person.prototype.siblings = function() {
 };
 
 Person.tagToLabel = function(tag) {
-  if (tag === 'BIRT') return Person.i18n('born').toUpperCase();
-  if (tag === 'BAPM') return Person.i18n('baptised').toUpperCase();
-  if (tag === 'DEAT') return Person.i18n('died').toUpperCase();
-  if (tag === 'BURI') return Person.i18n('buried').toUpperCase();
-  if (tag === 'OCCU') return Person.i18n('occupation').toUpperCase();
-  return tag;
+  const map = {
+    BIRT: 'born',
+    BAPM: 'baptised',
+    DEAT: 'died',
+    BURI: 'buried',
+    OCCU: 'occupation'
+  };
+  return map[tag] ? Person.i18n(map[tag]).toUpperCase() : tag;
 };
 
 Person.prototype.timeAndPlace = function(tag) {
@@ -456,20 +453,11 @@ Person.prototype.descendentIDs = function() {
 
 Person.prototype.hasAncestor = function(person, level, debug) {
   if (!level) level = 1;
-  // if (debug) console.log('hasAncestor' + ' ' + person.name() + ' / ' + this.name());
   for (var parent of ['father', 'mother']) {
-    if (debug) console.log('hasAncestor' + ' ' + this.name() + '\'s ' + parent + ' is ' + this[parent]().name());
     if (this[parent]().id()) {
-      // if (debug) console.log('hasAncestor' + ' ' + person.id() + ' === ' + this[parent]().id() + '? (for a ' + level + ')');
-      if (person.id() === this[parent]().id()) {
-        return level;
-      }
-      // if (debug) console.log('hasAncestor' + ', no so test ancestors of ' + parent);
+      if (person.id() === this[parent]().id()) return level;
       var newLevel = this[parent]().hasAncestor(person, level + 1, debug);
-      if (newLevel) {
-        // if (debug) console.log('hasAncestor' + ' got a ' + newLevel);
-        return newLevel;
-      }
+      if (newLevel) return newLevel;
     }
   }
   return false;
@@ -499,8 +487,18 @@ Person.ordinal = function(number) {
 };
 
 Person.ordinalSuperlative = function(number, superlative) {
-  if (number == 1) return Person.i18n(superlative);
+  if (number === 1) return Person.i18n(superlative);
   return Person.ordinal(number) + ' ' + Person.i18n(superlative);
+};
+
+Person.prototype.isCousinOf = function(person, thisParentLevel, otherParentLevel) {
+  return Person._arrayIntersect(this.parentIDs(thisParentLevel), person.parentIDs(otherParentLevel));
+};
+
+Person.cousinDescription = function(thisParentLevel, otherParentLevel) {
+  var description = Person.ordinal(thisParentLevel - 1) + ' ' + Person.i18n('cousin');
+  if (!otherParentLevel || (thisParentLevel === otherParentLevel)) return description;
+  return description + ' ' + Person.commodore(Math.abs(thisParentLevel - otherParentLevel)) + ' ' + Person.i18n('removed');
 };
 
 Person.prototype._relationship = function(person) {
@@ -540,7 +538,7 @@ Person.prototype._relationship = function(person) {
   }
   var i;
   for (i = 2; i < Person.generationsToName; i++) {
-    if (Person._arrayIntersect(this.parentIDs(i), person.parentIDs(i))) return Person.ordinal(i - 1) + ' ' + Person.i18n('cousin');
+    if (Person._arrayIntersect(this.parentIDs(i), person.parentIDs(i))) return Person.cousinDescription(i);
   }
 
   if (Person._arrayIntersect(this.parentIDs(2), person.parentIDs())) return this.siblingChildType();
@@ -549,12 +547,11 @@ Person.prototype._relationship = function(person) {
   for (i = 2; i < Person.generationsToName; i++) {
     for (var j = 2; j < Person.generationsToName; j++) {
       if (i === j) continue; // already tested this
-      if (Person._arrayIntersect(this.parentIDs(i), person.parentIDs(j))) return Person.ordinal(i - 1) + ' ' + Person.i18n('cousin') + ' ' + Person.commodore(Math.abs(i - j)) + ' ' + Person.i18n('removed');
+      if (Person._arrayIntersect(this.parentIDs(i), person.parentIDs(j))) return Person.cousinDescription(i, j);
     }
   }
   if (Person._arrayIntersect(this.ancestorIDs(), person.ancestorIDs())) return Person.i18n('related');
-
-  return null;
+  return '';
 };
 
 Person.prototype.source = function(ids) {
@@ -634,18 +631,17 @@ Person.prototype.howFarBack = function() {
   }.bind(this), { level: 0, person: null });
   if (furthestBack.level < 3) return '';
   var fact = historicalContext.fact(furthestBack.person._year('BIRT'), furthestBack.person._year('DEAT'));
-  return ['We can go back ', furthestBack.level, ' generations to ', furthestBack.person.name(true, true), fact].join(' ') + '. ';
+  return ['We can go back', furthestBack.level, 'generations to', furthestBack.person.name(true, true), fact].join(' ') + '. ';
 };
 
 Person.prototype.ancestorStats = function() {
   var prose = [];
   prose.push('We have ' + this.ancestorIDs().length + ' ancestors for ' + this.shortName());
-  if (this.father().id()) {
-    prose.push(', ' + this.father().ancestorIDs().length + ' for ' + this.personalPronoun() + ' ' + Person.i18n('father') + ' ' + this.father().shortName());
-  }
-  if (this.mother().id()) {
-    prose.push(', ' + this.mother().ancestorIDs().length + ' for ' + this.personalPronoun() + ' ' + Person.i18n('mother') + ' ' + this.mother().shortName());
-  }
+  ['father', 'mother'].forEach(function(parent) {
+    if (this[parent]().id()) {
+      prose.push(', ' + this[parent]().ancestorIDs().length + ' for ' + this.personalPronoun() + ' ' + Person.i18n(parent) + ' ' + this[parent]().shortName());
+    }
+  }.bind(this));
   prose.push('. ');
   return prose.join('');
 };
