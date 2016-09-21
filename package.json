@@ -6,7 +6,8 @@
   "scripts": {
     "build": "./build.js > docs/index.html",
     "lint": "make-up src test",
-    "test": "npm run lint && npm run test:coverage",
+    "inspect": "jsinspect src/",
+    "test": "npm run lint && npm run inspect && npm run test:coverage",
     "test:coverage": "istanbul cover _mocha",
     "test:watch": "NODE_PATH=${PWD} mocha --watch",
     "postinstall": "chmod +x git-hooks/* && cp git-hooks/* .git/hooks",
@@ -37,6 +38,7 @@
     "chai": "^3.5.0",
     "dirty-chai": "^1.2.2",
     "istanbul": "^0.4.5",
+    "jsinspect": "^0.8.0",
     "make-up": "^9.3.1",
     "mocha": "^3.0.2",
     "mysql": "^2.11.1",

@@ -13,7 +13,7 @@ npm install
 
 ## build
 ```
-npm run build -- data/Clarke.ged
+npm run build -- data/Dummy.ged
 ```
 This will update the database, and build a sample page to the docs/ folder.
 
