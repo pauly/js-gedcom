@@ -10,6 +10,9 @@ var Person = module.exports = function(id, gedcom) {
 };
 
 Person.generationsToName = 10;
+Person.estimatedAgeOfGeneration = 22;
+Person.privateSurname = '[PRIVATE]';
+Person.unknownSurname = '[unknown]';
 
 Person._arrayIntersect = function(array1, array2) {
   for (var val of array1) {
@@ -68,8 +71,27 @@ Person.prototype.init = function(id, gedcom) {
     this._data = {};
     return;
   }
-  // id = Person._id(id);
   this._data = gedcom.INDI[id];
+
+  // Guess the death date based on burial date
+  if (!this.data('DEAT').DATE) {
+    if (this.data('BURI').DATE) {
+      if (!this._data.DEAT) this._data.DEAT = {};
+      this._data.DEAT.DATE = ['before ' + this.data('BURI').DATE[0]];
+    }
+  }
+
+  // Guess the birth date based on child ages
+  if (!this.data('BIRT').DATE) {
+    if (this._data) {
+      if (!this._data.BIRT) this._data.BIRT = {};
+      this._data.BIRT.DATE = ['EST ' + this.children().reduce(function(year, child) {
+        var estimatedYear = child._year() - Person.estimatedAgeOfGeneration;
+        if (estimatedYear < year) return estimatedYear;
+        return year;
+      }.bind(this), Infinity) + ' (guessed based on child ages)'];
+    }
+  }
 };
 
 Person._id = function(id) {
@@ -88,8 +110,8 @@ Person._trim = function(string) {
 
 Person.prototype._partOfName = function(part, link, years) {
   if (!part) part = 'NAME';
-  if (!this.data('NAME')[part]) return 'unknown';
-  if (this.isPrivate()) return '[PRIVATE]';
+  if (!this.data('NAME')[part]) return Person.unknownSurname;
+  if (this.isPrivate()) return Person.privateSurname;
   var name = this.data('NAME')[part][0].replace(/\//g, '');
   if (!link) {
     if (years) name = [name, this.years()].join(' ');
@@ -661,15 +683,22 @@ Person.prototype.nameStats = function() {
   var countBySurname = Object.keys(Person._gedcom.INDI).reduce(function(count, id) {
     var person = Person.singleton(id);
     var surname = person.surname().toLowerCase();
-    if (!count.hasOwnProperty(surname)) count[surname] = 0;
-    count[surname] ++;
+    count[surname] = count[surname] ? count[surname] + 1 : 1;
     return count;
   }, {});
   var surnamePopularity = Object.keys(countBySurname).sort(function(a, b) {
     return countBySurname[b] - countBySurname[a];
+  }).filter(function(surname) {
+    return surname !== Person.privateSurname.toLowerCase() && surname !== Person.unknownSurname.toLowerCase();
   });
+  prose.push(' with ' + surnamePopularity.length + ' different surnames');
+  // prose.push(' (top three are ' + surnamePopularity.slice(0, 3).join(', ') + ')');
   var lowerCaseSurname = this.surname().toLowerCase();
-  prose.push(', including ' + countBySurname[lowerCaseSurname] + ' called ' + this.surname() + '. ');
+  if (countBySurname[lowerCaseSurname] === 1) {
+    prose.push(', but only one ' + this.surname() + '... ');
+  } else {
+    prose.push(', including ' + countBySurname[lowerCaseSurname] + ' called ' + this.surname() + '. ');
+  }
   if (surnamePopularity.indexOf(lowerCaseSurname) < 10) {
     prose.push(this.surname() + ' is the ' + Person.ordinalSuperlative(surnamePopularity.indexOf(lowerCaseSurname) + 1, 'most common') + ' name in our tree. ');
   }
