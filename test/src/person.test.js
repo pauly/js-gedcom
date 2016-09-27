@@ -156,7 +156,7 @@ describe('Person', function() {
     });
 
     it('will make a name a link', function() {
-      expect(paul._partOfName('NAME', true)).to.equal('<a href="LINK" itemprop="url sameAs"><span itemprop="name">Paul Leslie CLARKE</span></a>');
+      expect(paul._partOfName('NAME', true)).to.equal('<a title="Paul Leslie CLARKE YEARS" href="LINK" itemprop="url sameAs"><span itemprop="name">Paul Leslie CLARKE</span></a>');
     });
 
     it('will add dates to a name', function() {
@@ -164,11 +164,11 @@ describe('Person', function() {
     });
 
     it('will make a name with dates a link', function() {
-      expect(paul._partOfName('NAME', true, true)).to.equal('<a href="LINK" itemprop="url sameAs"><span itemprop="name">Paul Leslie CLARKE</span> YEARS</a>');
+      expect(paul._partOfName('NAME', true, true)).to.equal('<a title="Paul Leslie CLARKE YEARS" href="LINK" itemprop="url sameAs"><span itemprop="name">Paul Leslie CLARKE</span> YEARS</a>');
     });
 
     it('is ok with missing data', function() {
-      expect(mysteryPerson._partOfName()).to.equal('unknown');
+      expect(mysteryPerson._partOfName()).to.equal('<a title="We have missing details for this person, can you help?">[unknown]</a>');
     });
   });
 
@@ -292,9 +292,9 @@ describe('Person', function() {
     });
   });
 
-  describe('table', function() {
+  describe('htmlTree', function() {
     it('works', function() {
-      expect(paul.table()).to.be.ok();
+      expect(paul.htmlTree()).to.be.ok();
     });
   });
 

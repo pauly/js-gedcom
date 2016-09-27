@@ -6,19 +6,20 @@ var Person = require('./src/person');
 if (process.argv.length !== 3) {
   throw 'usage: npm run build -- [location of your gedcom file]';
 }
+Person.owner = (process.env.GEDCOM_OWNER || 'I1').split(/,\n*/);
 
 Person.parse(process.argv[2], function(err, gedcom) {
   if (err) throw err;
   console.log('<!doctype html><html><head><title>js-gedcom javascript family tree parser by Paul Clarke</title>');
   console.log('<link rel="stylesheet" type="text/css" href="http://www.clarkeology.com/css/main.css" />');
+  console.log('<link rel="stylesheet" type="text/css" href="http://www.clarkeology.com/css/tree.css" />');
   console.log('<meta name="description" content="' + process.env.npm_package_description.replace(/"/g, '&quot;') + '" /><link rel="canonical" href="http://www.clarkeology.com/names/clarke/7/paul+leslie" />');
   console.log('</head><body>');
   console.log('<p><a href="' + process.env.npm_package_homepage + '">' + process.env.npm_package_name + '</a>, a project on github...</p>');
 
-  var owner = (process.env.GEDCOM_OWNER || 'I1').split(/,\n*/)
-    .map(function(id) {
-      return Person.singleton(id, gedcom);
-    });
+  var owner = Person.owner.map(function(id) {
+    return Person.singleton(id, gedcom);
+  });
   console.log(owner[0].page());
 
   // now the whole gedcom is in a quirky format in $gedcom, try:

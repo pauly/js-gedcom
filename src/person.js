@@ -84,12 +84,16 @@ Person.prototype.init = function(id, gedcom) {
   // Guess the birth date based on child ages
   if (!this.data('BIRT').DATE) {
     if (this._data) {
-      if (!this._data.BIRT) this._data.BIRT = {};
-      this._data.BIRT.DATE = ['EST ' + this.children().reduce(function(year, child) {
+      var guess = this.children().reduce(function(year, child) {
+        if (!child._year()) return year;
         var estimatedYear = child._year() - Person.estimatedAgeOfGeneration;
         if (estimatedYear < year) return estimatedYear;
         return year;
-      }.bind(this), Infinity) + ' (guessed based on child ages)'];
+      }, Infinity);
+      if (guess < Infinity) {
+        if (!this._data.BIRT) this._data.BIRT = {};
+        this._data.BIRT.DATE = ['EST ' + guess + ' (guessed based on child ages)'];
+      }
     }
   }
 };
@@ -110,14 +114,14 @@ Person._trim = function(string) {
 
 Person.prototype._partOfName = function(part, link, years) {
   if (!part) part = 'NAME';
-  if (!this.data('NAME')[part]) return Person.unknownSurname;
-  if (this.isPrivate()) return Person.privateSurname;
+  if (!this.data('NAME')[part]) return '<a title="We have missing details for this person, can you help?">' + Person.unknownSurname + '</a>';
+  if (this.isPrivate()) return '<a title="These details are private">' + Person.privateSurname + '</a>';
   var name = this.data('NAME')[part][0].replace(/\//g, '');
   if (!link) {
     if (years) name = [name, this.years()].join(' ');
     return Person._trim(name);
   }
-  var html = '<a href="' + this.link() + '" itemprop="url sameAs">';
+  var html = '<a title="' + this.name() + ' ' + this.years(false) + '" href="' + this.link() + '" itemprop="url sameAs">';
   html += '<span itemprop="name">' + name + '</span>';
   if (years) {
     html += ' ' + this.years(true);
@@ -285,6 +289,7 @@ Person.prototype.isAlive = function() {
   return true;
 };
 
+// @todo fix this to use "owner" instead
 Person.prototype.isPrivate = function() {
   if (!this.id()) return false;
   if (this.id() === '1') return false; // show dad
@@ -292,22 +297,6 @@ Person.prototype.isPrivate = function() {
   if (this.id() === '157') return false; // show clare
   if (this.id() === '95') return false; // show jack
   return this.isAlive();
-};
-
-Person.prototype.td = function(person, schemaRelationship, cols, className) {
-  var html = '    <td colspan="' + cols + '"';
-  if (className) {
-    html += ' class="' + className + '"';
-  }
-  if (!person.id()) schemaRelationship = null;
-  if (person.isPrivate()) schemaRelationship = null;
-  if (schemaRelationship) {
-    html += ' itemprop="' + schemaRelationship + '" itemscope itemtype="http://schema.org/Person"';
-  }
-  html += '>\n';
-  html += '      ' + person.name(true, schemaRelationship, schemaRelationship) + '\n';
-  html += '    </td>\n';
-  return html;
 };
 
 Person.prototype._place = function(type, itemProp, defaultValue) {
@@ -341,62 +330,41 @@ Person.prototype.spouses = function() {
   return this._spouses;
 };
 
-Person.prototype.table = function() {
-  var html = '<table class="family" summary="' + this.name() + ' family tree"';
-  html += ' itemscope itemtype="http://schema.org/Person"';
-  html += '>\n';
-  var children = this.children().map(function(child) {
-    return child.name(true);
-  });
-  var c = children.length;
-  if (!c) c = 1;
-  html += '  <tr>\n';
-  html += this.td(this.father().father().father(), 'relatedTo', c, 'ggparent');
-  html += this.td(this.father().father().mother(), 'relatedTo', c, 'ggparent');
-  html += this.td(this.father().mother().father(), 'relatedTo', c, 'ggparent');
-  html += this.td(this.father().mother().mother(), 'relatedTo', c, 'ggparent');
-  html += this.td(this.mother().father().father(), 'relatedTo', c, 'ggparent');
-  html += this.td(this.mother().father().mother(), 'relatedTo', c, 'ggparent');
-  html += this.td(this.mother().mother().father(), 'relatedTo', c, 'ggparent');
-  html += this.td(this.mother().mother().mother(), 'relatedTo', c, 'ggparent');
-  html += '  </tr>\n';
-  html += '  <tr>\n';
-  html += this.td(this.father().father(), 'relatedTo', c * 2, 'gparent');
-  html += this.td(this.father().mother(), 'relatedTo', c * 2, 'gparent');
-  html += this.td(this.mother().father(), 'relatedTo', c * 2, 'gparent');
-  html += this.td(this.mother().mother(), 'relatedTo', c * 2, 'gparent');
-  html += '  </tr>\n';
+Person.prototype.htmlTree = function() {
+  var html = '<div class="tree"><p>Experimental family tree chart - shows ancestors and descendents hopefully styled nicely.</p><ul>\n';
+  html += this.li(null, 2, 3);
+  html += '</ul></div>\n';
+  return html;
+};
 
-  html += '  <tr>\n';
-  html += this.td(this.father(), 'parent', c * 4);
-  html += this.td(this.mother(), 'parent', c * 4);
-  html += '  </tr>\n';
-
-  html += '  <tr>\n';
-  html += '    <td class="self" colspan="' + c * 8 + '">\n';
-  html += '      <span itemprop="name">';
-  html += this.name();
-  html += '</span> ' + this.years(true) + '\n';
+Person.prototype.li = function(relationship, levelsOfChildren, levelsOfParents) {
+  var html = '<li';
+  if (relationship) html += ' itemprop="' + relationship + '"';
+  html += ' itemscope itemtype="http://schema.org/Person">\n';
+  if (levelsOfParents > 0) {
+    html += '<ul>\n';
+    html += this.father().li('parent', 0, levelsOfParents - 1);
+    html += this.mother().li('parent', 0, levelsOfParents - 1);
+    html += '</ul>\n';
+  }
+  html += this.name(true, true) + '\n';
   ['BIRT', 'DEAT'].forEach(function(type) {
-    html += '      ' + this._place(type, type.toLowerCase() + 'hPlace', '') + '\n';
+    html += this._place(type, type.toLowerCase() + 'hPlace', '') + '\n';
   }.bind(this));
   if (!this.isPrivate()) {
     var location = this.data('RESI').CTRY || this._place('DEAT', false, this._place('BIRT', false, 'Unknown'));
-    html += '      <span itemprop="homeLocation" itemscope itemtype="http://schema.org/PostalAddress">\n';
-    html += '        <meta itemprop="description" content="' + location + '" />\n';
-    html += '      </span>\n';
+    html += '<span itemprop="homeLocation" itemscope itemtype="http://schema.org/PostalAddress">\n';
+    html += '<meta itemprop="description" content="' + location + '" />\n';
+    html += '</span>\n';
   }
-  html += '    </td>\n';
-  html += '  </tr>\n';
-
-  if (!this.isPrivate()) {
-    html += '  <tr>\n';
+  if (levelsOfChildren > 0 && !this.isPrivate()) {
+    html += '<ol>\n';
     html += this.children().map(function(child) {
-      return this.td(child, 'children', 8);
-    }.bind(this)).join('');
-    html += '  </tr>\n';
+      return child.li('children', levelsOfChildren - 1, 0);
+    }).join('');
+    html += '</ol>\n';
   }
-  html += '</table>\n';
+  html += '</li>\n';
   return html;
 };
 
@@ -719,7 +687,7 @@ Person.prototype.page = function() {
     var will = this.will();
     if (will) parts.push(will);
   }
-  parts.push(this.table(!this.isPrivate()));
+  parts.push(this.htmlTree());
   // if (this._data.SOUR) parts.push('Source: ' + this.source(this.data('SOUR').SOUR)); // @todo
   if (this.isPrivate()) {
     parts.push('Respecting the privacy of ' + this.name() + ' (at least partly!). If you are ' + this.name() + ' and you would like more of your details removed from this site please get in touch. Likewise if you can offer more details of your family tree, please also drop me a line!'); // @todo i18n
