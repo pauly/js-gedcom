@@ -332,52 +332,85 @@ Person.prototype.spouses = function() {
 
 Person.prototype.htmlTree = function() {
   var html = '<div class="tree"><p>Experimental family tree chart - shows ancestors and descendents hopefully styled nicely.</p><ul>\n';
+  // pass in parents and children only for the core person
   html += this.li(null, 2, 3);
   html += '</ul></div>\n';
   return html;
 };
 
 Person.prototype.li = function(relationship, levelsOfChildren, levelsOfParents) {
+  var isCorePerson = Boolean(levelsOfChildren && levelsOfParents);
   var html = '<li';
-  if (relationship) html += ' itemprop="' + relationship + '"';
-  html += ' itemscope itemtype="http://schema.org/Person">\n';
+  if (!this.isPrivate()) {
+    if (relationship) html += ' itemprop="' + relationship + '"';
+    if (relationship || isCorePerson) html += ' itemscope itemtype="http://schema.org/Person"';
+  }
+  var classes = [];
+  if (this.siblings().length) {
+    classes.push(this.siblings().length + '-siblings');
+  }
+  if (!levelsOfChildren && !levelsOfParents) {
+    if (this.children().length) {
+      classes.push('got-children');
+    }
+    if (this.father().id() || this.mother().id()) {
+      classes.push('got-parents');
+    }
+  }
+  if (classes.length) html += ' class="' + classes.join(' ') + '"';
+  html += '>\n';
   if (levelsOfParents > 0) {
     html += '<ul>\n';
     html += this.father().li('parent', 0, levelsOfParents - 1);
     html += this.mother().li('parent', 0, levelsOfParents - 1);
     html += '</ul>\n';
   }
-  html += this.name(true, true) + '\n';
-  ['BIRT', 'DEAT'].forEach(function(type) {
-    html += this._place(type, type.toLowerCase() + 'hPlace', '') + '\n';
-  }.bind(this));
-  if (!this.isPrivate()) {
-    var location = this.data('RESI').CTRY || this._place('DEAT', false, this._place('BIRT', false, 'Unknown'));
-    html += '<span itemprop="homeLocation" itemscope itemtype="http://schema.org/PostalAddress">\n';
-    html += '<meta itemprop="description" content="' + location + '" />\n';
-    html += '</span>\n';
-  }
-  if (levelsOfChildren > 0 && !this.isPrivate()) {
+  if (isCorePerson) {
     html += '<ol>\n';
-    html += this.children().map(function(child) {
-      return child.li('children', levelsOfChildren - 1, 0);
-    }).join('');
+    html += this.siblings(true, true).map(function(sibling) {
+      if (sibling.id() === this.id()) {
+        return sibling.li(null, levelsOfChildren);
+      }
+      return sibling.li('relatedTo');
+    }.bind(this)).join('');
     html += '</ol>\n';
+  } else {
+    html += this.name(true, true) + '\n';
+    if (!this.isPrivate()) {
+      ['BIRT', 'DEAT'].forEach(function(type) {
+        html += this._place(type, type.toLowerCase() + 'hPlace', '') + '\n';
+      }.bind(this));
+      var location = this.data('RESI').CTRY || this._place('DEAT', false, this._place('BIRT', false, 'Unknown'));
+      html += '<span itemprop="homeLocation" itemscope itemtype="http://schema.org/PostalAddress">';
+      html += '<meta itemprop="description" content="' + location + '" />';
+      html += '</span>\n';
+    }
+    if (levelsOfChildren > 0 && !this.isPrivate()) {
+      html += '<ol>\n';
+      html += this.children().map(function(child) {
+        return child.li('children', levelsOfChildren - 1);
+      }).join('');
+      html += '</ol>\n';
+    }
   }
   html += '</li>\n';
   return html;
 };
 
-Person.prototype.siblings = function() {
-  if (!this._siblings) {
-    this._siblings = [];
-    var family = this.familiesWithParents();
-    if (family && family.CHIL) {
-      family.CHIL.CHIL.forEach(function(child) {
-        var sibling = Person.singleton(child);
-        if (sibling.id() !== this.id()) this._siblings.push(sibling);
-      }.bind(this));
-    }
+Person.prototype.siblings = function(includingThisPerson, exactParents) {
+  this._siblings = [];
+  var family = this.familiesWithParents();
+  if (family && family.CHIL) {
+    family.CHIL.CHIL.forEach(function(child) {
+      var sibling = Person.singleton(child);
+      if (exactParents) {
+        if (this.father().id() !== sibling.father().id()) return;
+        if (this.mother().id() !== sibling.mother().id()) return;
+      }
+      if (includingThisPerson || (sibling.id() !== this.id())) {
+        this._siblings.push(sibling);
+      }
+    }.bind(this));
   }
   return this._siblings;
 };
