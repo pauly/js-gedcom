@@ -24,7 +24,7 @@ Person._arrayIntersect = (array1, array2) => {
 Person.singleton = data => {
   if (!Person._people) Person._people = {};
   let id = Person._id(data);
-  if (!id) id = -1;
+  if (!id) id = 0;
   if (!Person._people[id]) {
     Person._people[id] = new Person(id);
   }
@@ -112,12 +112,25 @@ Person._trim = string => (`${string}`).replace(/^ +/, '').replace(/ +$/, '');
 
 Person.prototype._partOfName = function(part, link, years) {
   if (!part) part = 'NAME';
-  if (!this.data('NAME')[part]) return `<a title="We have missing details for this person, can you help?">${Person.unknownSurname}</a>`;
-  if (this.isPrivate()) return `<a title="These details are private">${Person.privateSurname}</a>`;
+  if (!this.data('NAME')[part]) {
+    if (link) return `<a title="We have missing details for this person, can you help?">${Person.unknownSurname}</a>`;
+    return Person.unknownSurname;
+  }
+  if (this.isPrivate()) {
+    if (link) return `<a title="These details are private">${Person.privateSurname}</a>`;
+    return Person.privateSurname;
+  }
   let name = this.data('NAME')[part][0].replace(/\//g, '');
   if (!link) {
     if (years) name = [name, this.years()].join(' ');
     return Person._trim(name);
+  }
+  if (years) {
+    // with link and years we can trim out the middle names to save space
+    const parts = name.split(' ');
+    if (parts.length > 2) {
+      name = `${parts[0]} ${parts[parts.length - 1]}`;
+    }
   }
   let html = `<a title="${this.name()} ${this.years(false)}" href="${this.link()}" itemprop="url sameAs">`;
   html += `<span itemprop="name">${name}</span>`;
@@ -323,11 +336,20 @@ Person.prototype.spouses = function() {
 };
 
 Person.prototype.htmlTree = function() {
-  let html = '<div class="tree"><p>Experimental family tree chart - shows ancestors and descendents hopefully styled nicely.</p><ul>\n';
   // pass in parents and children only for the core person
-  html += this.li(null, 2, 3);
-  html += '</ul></div>\n';
-  return html;
+  return `<div class="tree">
+    <p>Experimental family tree chart - shows ancestors and descendents hopefully styled nicely.</p>
+    <ul>
+      ${this.li(null, 2, 3)}
+    </ul>
+  </div>`;
+};
+
+Person.prototype.homeLocation = function() {
+  const location = this.data('RESI').CTRY || this._place('DEAT', false, this._place('BIRT', false, 'Unknown'));
+  return `<span itemprop="homeLocation" itemscope itemtype="http://schema.org/PostalAddress">
+    <meta itemprop="description" content="${location}" />
+  </span>`;
 };
 
 Person.prototype.li = function(relationship, levelsOfChildren, levelsOfParents) {
@@ -338,15 +360,32 @@ Person.prototype.li = function(relationship, levelsOfChildren, levelsOfParents) 
     if (relationship || isCorePerson) html += ' itemscope itemtype="http://schema.org/Person"';
   }
   const classes = [];
+  let spouse = '';
+  if (!this.isPrivate() && levelsOfChildren) {
+    const spouses = this.spouses();
+    if (spouses.length === 1) {
+      spouse = `<div itemprop="spouse" itemscope itemtype="http://schema.org/Person">${spouses[0].name(true, true)}</div>`;
+      classes.push('with-spouse');
+    }
+  }
   if (this.siblings().length) {
     classes.push(`${this.siblings().length}-siblings`);
   }
-  if (!levelsOfChildren && !levelsOfParents) {
-    if (this.children().length) {
-      classes.push('got-children');
-    }
-    if (this.father().id() || this.mother().id()) {
-      classes.push('got-parents');
+  var children = '';
+  if (levelsOfChildren > 0 && !this.isPrivate() && this.children().length) {
+    children = `<ol>
+      ${this.children().map(child => child.li('children', levelsOfChildren - 1)).join('')}
+    </ol>`;
+  }
+  if (!children && !levelsOfParents) {
+    classes.push('end-node');
+    if (!this.isPrivate()) {
+      if (this.children().length) {
+        classes.push('got-children');
+      }
+      if (this.father().id() || this.mother().id()) {
+        classes.push('got-parents');
+      }
     }
   }
   if (classes.length) html += ` class="${classes.join(' ')}"`;
@@ -359,11 +398,11 @@ Person.prototype.li = function(relationship, levelsOfChildren, levelsOfParents) 
   }
   if (isCorePerson) {
     html += '<ol>\n';
-    html += this.siblings(true, true).map(sibling => {
-      if (sibling.id() === this.id()) {
-        return sibling.li(null, levelsOfChildren);
+    html += this.siblings(true, true).map(person => {
+      if (person.id() === this.id()) {
+        return person.li(null, levelsOfChildren, 0, true);
       }
-      return sibling.li('relatedTo');
+      return person.li('relatedTo');
     }).join('');
     html += '</ol>\n';
   } else {
@@ -372,37 +411,31 @@ Person.prototype.li = function(relationship, levelsOfChildren, levelsOfParents) 
       ['BIRT', 'DEAT'].forEach(type => {
         html += `${this._place(type, type.toLowerCase() + 'hPlace', '')}\n`;
       });
-      const location = this.data('RESI').CTRY || this._place('DEAT', false, this._place('BIRT', false, 'Unknown'));
-      html += '<span itemprop="homeLocation" itemscope itemtype="http://schema.org/PostalAddress">';
-      html += `<meta itemprop="description" content="${location}" />`;
-      html += '</span>\n';
+      html += this.homeLocation();
     }
-    if (levelsOfChildren > 0 && !this.isPrivate()) {
-      html += '<ol>\n';
-      html += this.children().map(child => child.li('children', levelsOfChildren - 1)).join('');
-      html += '</ol>\n';
-    }
+    html += spouse;
+    html += children;
   }
   html += '</li>\n';
   return html;
 };
 
 Person.prototype.siblings = function(includingThisPerson, exactParents) {
-  this._siblings = [];
   const family = this.familiesWithParents();
-  if (family && family.CHIL) {
-    family.CHIL.CHIL.forEach(child => {
-      const sibling = Person.singleton(child);
-      if (exactParents) {
-        if (this.father().id() !== sibling.father().id()) return;
-        if (this.mother().id() !== sibling.mother().id()) return;
-      }
-      if (includingThisPerson || (sibling.id() !== this.id())) {
-        this._siblings.push(sibling);
-      }
-    });
+  if (!family || !family.CHIL) {
+    if (includingThisPerson) return [this];
+    return []; 
   }
-  return this._siblings;
+  return family.CHIL.CHIL.map(Person.singleton).filter(sibling => {
+    if (exactParents) {
+      if (sibling.id() !== this.id()) {
+        if (this.father().id() !== sibling.father().id()) return false;
+        if (this.mother().id() !== sibling.mother().id()) return false;
+      }
+    }
+    if (includingThisPerson) return true;
+    return (sibling.id() !== this.id());
+  });
 };
 
 Person.tagToLabel = tag => {
@@ -444,11 +477,11 @@ Person.prototype.parentIDs = function(levelRequired, thisLevel) {
 
 Person.prototype.ancestorIDs = function() {
   let ancestors = [];
-  if (this.father().id() > 0) {
+  if (this.father().id()) {
     ancestors.push(this.father().id());
     ancestors = ancestors.concat(this.father().ancestorIDs());
   }
-  if (this.mother().id() > 0) {
+  if (this.mother().id()) {
     ancestors.push(this.mother().id());
     ancestors = ancestors.concat(this.mother().ancestorIDs());
   }
@@ -697,19 +730,21 @@ Person.prototype.page = function() {
   if (!this.isPrivate()) {
     // var occupation = this.occupation();
     // if (occupation) parts.push(occupation);
+    // if (this.occupation()) parts.push(this.occupation());
     ['BIRT', 'BAPM', 'DEAT', 'BURI'].forEach(tag => {
       const content = this.timeAndPlace(tag, true);
       if (content) parts.push(content);
     });
-    const notes = this.notes();
-    if (notes) parts.push(notes);
-    const will = this.will();
-    if (will) parts.push(will);
+    if (this.notes()) parts.push(this.notes());
+    if (this.will()) parts.push(this.will());
   }
   parts.push(this.htmlTree());
   // if (this._data.SOUR) parts.push('Source: ' + this.source(this.data('SOUR').SOUR)); // @todo
   if (this.isPrivate()) {
-    parts.push(`Respecting the privacy of ${this.name()} (at least partly!). If you are ${this.name()} and you would like more of your details removed from this site please get in touch. Likewise if you can offer more details of your family tree, please also drop me a line!`); // @todo i18n
+    parts.push(`Respecting the privacy of ${this.name()} (at least partly!).
+      If you are ${this.name()} and you would like more of your details removed
+      from this site please get in touch. Likewise if you can offer more
+      details of your family tree, please also drop me a line!`); // @todo i18n
   }
   parts.push(`${Person.i18n('father').toUpperCase()} ${this.father().name(false, !this.father().isPrivate())}`);
   parts.push(`${Person.i18n('mother').toUpperCase()} ${this.mother().name(false, !this.mother().isPrivate())}`);
@@ -731,8 +766,5 @@ Person.prototype.page = function() {
   prose.push(this.descendentStats());
   prose.push(this.nameStats());
   parts.push(prose.join(''));
-  return parts.map(content => {
-    if (content.indexOf('<table') === 0) return content;
-    return `<p>${content}</p>`;
-  }).join('');
+  return parts.reduce((html, content) => `${html}<p>${content}</p>`, '');
 };

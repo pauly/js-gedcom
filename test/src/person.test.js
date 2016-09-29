@@ -164,11 +164,11 @@ describe('Person', () => {
     });
 
     it('will make a name with dates a link', () => {
-      expect(paul._partOfName('NAME', true, true)).to.equal('<a title="Paul Leslie CLARKE YEARS" href="LINK" itemprop="url sameAs"><span itemprop="name">Paul Leslie CLARKE</span> YEARS</a>');
+      expect(paul._partOfName('NAME', true, true)).to.equal('<a title="Paul Leslie CLARKE YEARS" href="LINK" itemprop="url sameAs"><span itemprop="name">Paul CLARKE</span> YEARS</a>');
     });
 
     it('is ok with missing data', () => {
-      expect(mysteryPerson._partOfName()).to.equal('<a title="We have missing details for this person, can you help?">[unknown]</a>');
+      expect(mysteryPerson._partOfName()).to.equal('[unknown]');
     });
   });
 
