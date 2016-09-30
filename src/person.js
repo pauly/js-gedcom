@@ -295,12 +295,12 @@ Person.prototype.isAlive = function() {
 };
 
 // @todo fix this to use "owner" instead
+Person.prototype.isOwner = function() {
+  return (Person.owner || []).indexOf('I' + this.id()) > -1;
+};
 Person.prototype.isPrivate = function() {
   if (!this.id()) return false;
-  if (this.id() === '1') return false; // show dad
-  if (this.id() === '7') return false; // show me
-  if (this.id() === '157') return false; // show clare
-  if (this.id() === '95') return false; // show jack
+  if (this.isOwner()) return false;
   return this.isAlive();
 };
 
@@ -335,12 +335,12 @@ Person.prototype.spouses = function() {
   return this._spouses;
 };
 
-Person.prototype.htmlTree = function() {
+Person.prototype.htmlTree = function(levelsOfChildren, levelsOfParents) {
   // pass in parents and children only for the core person
   return `<div class="tree">
-    <p>Experimental family tree chart - shows ancestors and descendents hopefully styled nicely.</p>
+    <p>Experimental family tree chart - ancestors and descendents styled nicely, hope it displays for you <a rel="nofollow" href="/a?b=14&mCategory=js-gedcom">leave me feedback about it</a>.</p>
     <ul>
-      ${this.li(null, 2, 3)}
+      ${this.li(null, levelsOfChildren || 2, levelsOfParents || 3)}
     </ul>
   </div>`;
 };
