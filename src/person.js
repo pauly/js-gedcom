@@ -668,7 +668,7 @@ Person.prototype.notes = function() {
   return notes.join('<br />');
 };
 
-Person.prototype.howFarBack = function() {
+Person.prototype.howFarBack = function(prefix) {
   const furthestBack = this.ancestorIDs().reduce((data, id) => {
     const person = Person.singleton(`I${id}`);
     const level = this.hasAncestor(person, 1);
@@ -677,7 +677,14 @@ Person.prototype.howFarBack = function() {
   }, { level: 0, person: null });
   if (furthestBack.level < 3) return '';
   const fact = historicalContext.fact(furthestBack.person._year('BIRT'), furthestBack.person._year('DEAT'));
-  return `${['We can go back', furthestBack.level, 'generations to', furthestBack.person.name(true, true), fact].join(' ')}. `;
+  let text = `${[prefix || 'We can go back', furthestBack.level, 'generations to', furthestBack.person.name(true, true), fact].join(' ')}. `;
+  if (prefix) return text; // so do not recurse...
+  for (const parent of ['father', 'mother']) {
+    if (!this[parent]().hasAncestor(furthestBack.person)) {
+      text += this[parent]().howFarBack(`For ${this.personalPronoun()} ${parent} we go back`);
+    }
+  }
+  return text;
 };
 
 Person.prototype.ancestorStats = function() {
