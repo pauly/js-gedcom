@@ -5,7 +5,7 @@
   "main": "src/person.js",
   "scripts": {
     "build": "./build.js > docs/index.html",
-    "lint": "make-up src test",
+    "lint": "standard src test",
     "inspect": "jsinspect src/",
     "test": "npm run lint && npm run inspect && npm run test:coverage",
     "test:coverage": "istanbul cover _mocha",
@@ -39,10 +39,10 @@
     "dirty-chai": "^1.2.2",
     "istanbul": "^0.4.5",
     "jsinspect": "^0.8.0",
-    "make-up": "^9.3.1",
     "mocha": "^3.0.2",
     "mysql": "^2.11.1",
     "sinon": "^1.17.5",
-    "sinon-chai": "^2.8.0"
+    "sinon-chai": "^2.8.0",
+    "standard": "^8.6.0"
   }
 }
