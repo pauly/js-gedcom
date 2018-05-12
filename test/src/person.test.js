@@ -181,11 +181,11 @@ describe('Person', () => {
 
   describe('link', () => {
     it('makes a url', () => {
-      expect(paul.link()).to.equal('http://www.clarkeology.com/names/clarke/1/paul-leslie')
+      expect(paul.link()).to.equal('/names/clarke/1/paul-leslie')
     })
 
     it.skip('is ok with missing data', () => {
-      expect(mysteryPerson.link()).to.equal('http://www.clarkeology.com/names/unknown/0/unknown')
+      expect(mysteryPerson.link()).to.equal('/names/unknown/0/unknown')
     })
   })
 

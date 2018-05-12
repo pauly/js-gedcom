@@ -148,7 +148,8 @@ Person.prototype._partOfName = function (part, link, years) {
 Person.prototype._urlise = text => (`${text}`).replace(/\s+/g, '-').replace(/[^\w'-]/g, '').replace(/'/g, '%27').toLowerCase()
 
 Person.prototype.link = function () {
-  return `http://www.clarkeology.com/names/${this._urlise(this.surname())}/${this.id()}/${this._urlise(this.forename())}`
+  // @todo let /names/ be configurable
+  return `/names/${this._urlise(this.surname())}/${this.id()}/${this._urlise(this.forename())}`
 }
 
 Person.prototype.name = function (link, years) {
