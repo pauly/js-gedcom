@@ -65,6 +65,10 @@ Person.parse = (file, callback) => {
   })
 }
 
+Person.stripTags = data => {
+  return ('' + data).replace(/<\/?\w+[^>]*?>/g, '')
+}
+
 Person.prototype.init = function (id, gedcom) {
   if (!gedcom) gedcom = Person._gedcom
   if (!id) {
@@ -113,11 +117,11 @@ Person._trim = string => (`${string}`).replace(/^ +/, '').replace(/ +$/, '')
 Person.prototype._partOfName = function (part, link, years) {
   if (!part) part = 'NAME'
   if (!this.data('NAME')[part]) {
-    if (link) return `<a title="We have missing details for this person, can you help?">${Person.unknownSurname}</a>`
+    if (link) return `<a href="#" title="We have missing details for this person, can you help?">${Person.unknownSurname}</a>`
     return Person.unknownSurname
   }
   if (this.isPrivate()) {
-    if (link) return `<a title="These details are private">${Person.privateSurname}</a>`
+    if (link) return `<a href="#" title="These details are private">${Person.privateSurname}</a>`
     return Person.privateSurname
   }
   let name = this.data('NAME')[part][0].replace(/\//g, '')
@@ -181,7 +185,9 @@ Person.prototype._year = function (type, html) {
 
 Person.prototype.years = function (html) {
   if (!this._year('BIRT') && !this._year('DEAT')) return ''
-  return Person._trim(`${this._year('BIRT', html)} - ${this._year('DEAT', html)}`)
+  let deathYear = this._year('DEAT', html)
+  if (!deathYear && !this.isAlive()) deathYear = '??'
+  return Person._trim(`${this._year('BIRT', html)} - ${deathYear}`)
 }
 
 Person.prototype.data = function (tag) {
@@ -207,6 +213,14 @@ Person.prototype.personalPronoun = function () {
 
 Person.prototype.childType = function () {
   return this.genderNoun('son', 'daughter', 'child')
+}
+
+Person.prototype.grandchildType = function () {
+  return this.genderNoun('grandson', 'granddaughter', 'grandchild')
+}
+
+Person.prototype.greatGrandchildType = function () {
+  return this.genderNoun('great-grandson', 'great-granddaughter', 'great-grandchild')
 }
 
 Person.prototype.siblingType = function () {
@@ -286,9 +300,9 @@ Person.prototype.isAlive = function () {
     if (child._year('BIRT') && (child._year('BIRT') < 1930)) return false
     for (const grandchild of child.children()) {
       if (grandchild._year('BIRT') && (grandchild._year('BIRT') < 1960)) return false
-      for (const greatgrandchild of grandchild.children()) {
+      /* for (const greatgrandchild of grandchild.children()) {
         if (greatgrandchild.children()) return false
-      }
+      } */
     }
   }
   return true
@@ -337,10 +351,12 @@ Person.prototype.spouses = function () {
 
 Person.prototype.htmlTree = function (levelsOfChildren, levelsOfParents) {
   // pass in parents and children only for the core person
-  return `<div class="tree">
-    <p>Experimental family tree chart - ancestors and descendents styled nicely, hope it displays for you <a rel="nofollow" href="/a?b=14&mCategory=js-gedcom">leave me feedback about it</a>.</p>
+  // if you build more than 2 levels it makes the dom tree too deep
+  return `<div class="tree ${levelsOfParents}gen">
+    <link rel="stylesheet" type="text/css" href="/css/tree.css" />
+    <p>Family tree chart - ancestors and descendents together, might have to scroll right a bit &gt;&gt; <a rel="nofollow" href="/a?b=14&mCategory=js-gedcom">leave me feedback about it</a>.</p>
     <ul>
-      ${this.li(null, levelsOfChildren || 2, levelsOfParents || 3)}
+      ${this.li(null, levelsOfChildren || 2, levelsOfParents || 2)}
     </ul>
   </div>`
 }
@@ -364,13 +380,14 @@ Person.prototype.li = function (relationship, levelsOfChildren, levelsOfParents)
   if (!this.isPrivate() && levelsOfChildren) {
     const spouses = this.spouses()
     if (spouses.length === 1) {
-      spouse = `<div itemprop="spouse" itemscope itemtype="http://schema.org/Person">${spouses[0].name(true, true)}</div>`
+      const spouseClass = (spouses[0].father().id() || spouses[0].mother().id()) ? 'class="got-parents" ' : ''
+      spouse = `<div ${spouseClass}itemprop="spouse" itemscope itemtype="http://schema.org/Person">${spouses[0].name(true, true)}</div>`
       classes.push('with-spouse')
     }
   }
-  if (this.siblings().length) {
-    classes.push(`${this.siblings().length}-siblings`)
-  }
+  // if (this.siblings().length) {
+  //   classes.push(`${this.siblings().length}-siblings`)
+  // }
   var children = ''
   if (levelsOfChildren > 0 && !this.isPrivate() && this.children().length) {
     children = `<ol>
@@ -558,16 +575,16 @@ Person.prototype._relationship = function (person) {
   if (this.id() === person.mother().mother().id()) return Person.i18n('maternal grandmother')
   if (this.father().id() === person.id()) return this.childType()
   if (this.mother().id() === person.id()) return this.childType()
-  if (this.father().father().id() === person.id()) return this.grandChildType()
-  if (this.father().mother().id() === person.id()) return this.grandChildType()
-  if (this.mother().father().id() === person.id()) return this.grandChildType()
-  if (this.mother().mother().id() === person.id()) return this.grandChildType()
+  if (this.father().father().id() === person.id()) return this.grandchildType()
+  if (this.father().mother().id() === person.id()) return this.grandchildType()
+  if (this.mother().father().id() === person.id()) return this.grandchildType()
+  if (this.mother().mother().id() === person.id()) return this.grandchildType()
   let level
   if (this.ancestorIDs().indexOf(person.id()) > -1) {
     level = this.hasAncestor(person, 1)
     if (level) {
-      if (level === 3) return this.greatGrandChildType()
-      return `${level - 2}x ${this.greatGrandChildType()}`
+      if (level === 3) return this.greatGrandchildType()
+      return `${level - 2}x ${this.greatGrandchildType()}`
     }
     return Person.i18n('descendent')
   }
@@ -628,7 +645,7 @@ Person.prototype.note = ids => {
     id = Person._id(id)
     if (id) {
       for (const tag of ['CONC']) {
-        if (Person._gedcom.NOTE[id][tag]) {
+        if (Person._gedcom.NOTE && Person._gedcom.NOTE[id] && Person._gedcom.NOTE[id][tag]) {
           notes = notes.concat(Person._gedcom.NOTE[id][tag][tag])
         } else {
           notes.push(id)
@@ -636,7 +653,7 @@ Person.prototype.note = ids => {
       }
     }
   }
-  return notes.join('')
+  return Person.stripTags(notes.join(''))
 }
 
 Person.prototype.notes = function () {
@@ -644,6 +661,10 @@ Person.prototype.notes = function () {
   const notes = []
   this._data.NOTE.NOTE.forEach(id => { // @todo
     id = Person._id(id)
+    if (!Person._gedcom.NOTE || !(id in Person._gedcom.NOTE)) {
+      notes.push(id)
+      return
+    }
     if (Person._gedcom.NOTE[id].CONT) {
       let text = ''
       Person._gedcom.NOTE[id].CONT.CONT.forEach((note, key) => {
@@ -665,7 +686,7 @@ Person.prototype.notes = function () {
       }
     }
   })
-  return notes.join('<br />')
+  return Person.stripTags(notes.join(''))
 }
 
 Person.prototype.howFarBack = function (prefix) {
@@ -689,7 +710,7 @@ Person.prototype.howFarBack = function (prefix) {
 
 Person.prototype.ancestorStats = function () {
   const prose = []
-  prose.push(`We have ${this.ancestorIDs().length} ancestors for ${this.shortName()}`);
+  prose.push(`We have ${this.ancestorIDs().length || 'no'} ancestors for ${this.shortName()}`);
   ['father', 'mother'].forEach(parent => {
     if (this[parent]().id()) {
       prose.push(`, ${this[parent]().ancestorIDs().length} for ${this.personalPronoun()} ${Person.i18n(parent)} ${this[parent]().shortName()}`)
@@ -735,7 +756,7 @@ Person.prototype.nameStats = function () {
   return prose.join('')
 }
 
-Person.prototype.page = function () {
+Person.prototype.page = function (levelsOfChildren, levelsOfParents) {
   const parts = []
   if (!this.isPrivate()) {
     // var occupation = this.occupation();
@@ -748,7 +769,7 @@ Person.prototype.page = function () {
     if (this.notes()) parts.push(this.notes())
     if (this.will()) parts.push(this.will())
   }
-  parts.push(this.htmlTree())
+  parts.push(this.htmlTree(levelsOfChildren, levelsOfParents))
   // if (this._data.SOUR) parts.push('Source: ' + this.source(this.data('SOUR').SOUR)); // @todo
   if (this.isPrivate()) {
     parts.push(`Respecting the privacy of ${this.name()} (at least partly!).
