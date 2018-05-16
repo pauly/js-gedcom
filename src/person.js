@@ -13,6 +13,7 @@ Person.generationsToName = 10
 Person.estimatedAgeOfGeneration = 22
 Person.privateSurname = '[PRIVATE]'
 Person.unknownSurname = 'unknown'
+Person.baseurl = ''
 
 Person._arrayIntersect = (array1, array2) => {
   for (const val of array1) {
@@ -136,7 +137,7 @@ Person.prototype._partOfName = function (part, link, years) {
       name = `${parts[0]} ${parts[parts.length - 1]}`
     }
   }
-  let html = `<a title="${this.name()} ${this.years(false)}" href="${this.link()}" itemprop="url sameAs">`
+  let html = `<a title="${this.name()} ${this.years(false)}" href="${Person.baseurl}${this.link()}" itemprop="url sameAs">`
   html += `<span itemprop="name">${name}</span>`
   if (years) {
     html += ` ${this.years(true)}`
