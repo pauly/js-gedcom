@@ -356,11 +356,9 @@ Person.prototype.htmlTree = (levelsOfChildren = 2, levelsOfParents = 2) {
   // pass in parents and children only for the core person
   // if you build more than 2 levels it makes the dom tree too deep
   // @todo add css in here
-  return `<div class="tree ${levelsOfParents}gen">
-    <ul>
-      ${this.li(null, levelsOfChildren, levelsOfParents)}
-    </ul>
-  </div>`
+  return `<ul class="🌳 ${levelsOfParents}gen">
+    ${this.li(null, levelsOfChildren, levelsOfParents)}
+  </ul>`
 }
 
 Person.prototype.homeLocation = function () {
