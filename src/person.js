@@ -352,14 +352,13 @@ Person.prototype.spouses = function () {
   return this._spouses
 }
 
-Person.prototype.htmlTree = function (levelsOfChildren, levelsOfParents) {
+Person.prototype.htmlTree = (levelsOfChildren = 2, levelsOfParents = 2) {
   // pass in parents and children only for the core person
   // if you build more than 2 levels it makes the dom tree too deep
+  // @todo add css in here
   return `<div class="tree ${levelsOfParents}gen">
-    <link rel="stylesheet" type="text/css" href="/css/tree.css" />
-    <p>Family tree chart - ancestors and descendents together, might have to scroll right a bit &gt;&gt; <a rel="nofollow" href="/a?b=14&mCategory=js-gedcom">leave me feedback about it</a>.</p>
     <ul>
-      ${this.li(null, levelsOfChildren || 2, levelsOfParents || 2)}
+      ${this.li(null, levelsOfChildren, levelsOfParents)}
     </ul>
   </div>`
 }
