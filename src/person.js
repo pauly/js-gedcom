@@ -354,9 +354,10 @@ Person.prototype.spouses = function () {
 
 Person.prototype.htmlTree = (levelsOfChildren = 2, levelsOfParents = 2) {
   // pass in parents and children only for the core person
-  // if you build more than 2 levels it makes the dom tree too deep
-  // @todo add css in here
-  return `<ul class="🌳 ${levelsOfParents}gen">
+  // ⚠️ if you build more than 2 levels it makes the dom tree too deep
+  // 💅 awesome css below... if a tree with 2 levels of parents and 2 of children
+  // add a class of "🌳 🧓🧓 🧒🧒"
+  return `<ul class="🌳 ${'🧓'.repeat(levelsOfParents)} ${'🧒'.repeat(levelsOfChildren)}">
     ${this.li(null, levelsOfChildren, levelsOfParents)}
   </ul>`
 }
@@ -382,7 +383,7 @@ Person.prototype.li = function (relationship, levelsOfChildren, levelsOfParents)
     if (spouses.length === 1) {
       const spouseClass = (spouses[0].father().id() || spouses[0].mother().id()) ? 'class="got-parents" ' : ''
       spouse = `<div ${spouseClass}itemprop="spouse" itemscope itemtype="http://schema.org/Person">${spouses[0].name(true, true)}</div>`
-      classes.push('with-spouse')
+      classes.push('👫')
     }
   }
   // if (this.siblings().length) {
@@ -397,12 +398,8 @@ Person.prototype.li = function (relationship, levelsOfChildren, levelsOfParents)
   if (!children && !levelsOfParents) {
     classes.push('end-node')
     if (!this.isPrivate()) {
-      if (this.children().length) {
-        classes.push('got-children')
-      }
-      if (this.father().id() || this.mother().id()) {
-        classes.push('got-parents')
-      }
+      if (this.children().length) classes.push('🧒')
+      if (this.father().id() || this.mother().id()) classes.push('🧓')
     }
   }
   if (classes.length) html += ` class="${classes.join(' ')}"`

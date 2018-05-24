@@ -1,0 +1,225 @@
+/**
+ * family tree css idea taken from http://thecodeplayer.com/
+ */
+.🌳,
+.🌳 div,
+.🌳 ul,
+.🌳 ol {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  white-space: nowrap; /* don't want tree nodes wrapping */
+}
+
+.🌳 ol {
+  padding: 2em 0 0 0;
+}
+
+.🌳 li > a {
+  margin: 1em 1em 0 -1em;
+}
+
+/* grandparents */
+.🌳 li li > a {
+  margin: 1em 1em 0 1em;
+}
+
+.🌳 ol > li > a {
+  margin: 0 1em 0;
+}
+.🌳 div[itemprop=spouse], /* styling for spouse <div itemprop="spouse"> - as we're using microformats */
+.🌳 li {
+  white-space: normal; /* undo the nowrap we applied earlier */
+  vertical-align: top;
+  position: relative;
+  list-style-type: none;
+  text-align: center;
+  display: inline-block;
+}
+.🌳 div[itemprop=spouse] > a,
+.🌳 li > a {
+  background: #fff;
+  max-width: 5em;
+  padding: 0.5em;
+  height: 6em;
+  font-size: 0.8em;
+  font-weight: normal;
+  position: relative;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  display: inline-block;
+}
+
+.🌳 ul > li > a::before,
+.🌳 ul > li > a::after,
+.🌳 ol li::before,
+.🌳 ol li::after {
+  content: '';
+  position: absolute;
+  top: -1em;
+  right: 50%;
+  border-top: 1px solid #ccc;
+  width: 52%;
+  height: 1em;
+}
+.🌳 ul > li > a::before,
+.🌳 ul > li > a::after {
+  top: -3.5em;
+  height: 3.5em;
+  z-index: -1;
+}
+
+.🌳 > li > ol::before,
+.🌳 > li > ol::after,
+/* top of children list needs only one vertical line */
+.🌳 ol::before {
+  content: '';
+  position: absolute;
+  right: 50%;
+  width: 60%;
+  height: 2em;
+  border-top: none;
+  border-right: 1px solid #ccc;
+  top: -1em;
+  z-index: -1;
+}
+
+/* joining main person with siblings to parents */
+.🌳 > li > ol::before,
+.🌳 > li > ol::after {
+  border-top: 1px solid #ccc;
+  top: -4em;
+  height: 5em;
+  z-index: -1;
+}
+.🌳 > li > ol::after {
+  border-right: none;
+  left: 50%;
+}
+
+.🌳 ol li::after,
+.🌳 ul > li > a::after {
+  right: auto;
+  left: 50%;
+  border-left: 1px solid #ccc;
+}
+
+.🌳 time {
+  font-size: 0.8em;
+}
+
+.🌳 div[itemprop=spouse] a::before {
+  content: '';
+  position: absolute;
+  left: -3em;
+  width: 3em;
+  height: 3em;
+  border-bottom: 1px solid #ccc;
+  z-index: -1;
+}
+
+/* pad the person whose spouse is next to them so they line up again */
+.🌳 .👫 > a {
+  margin-left: 7em;
+}
+
+/* can we squeeze siblings without children showing up a bit, as their children won't overlap */
+.🌳 li:not(.👫):not(:first-child) + .👫 {
+  margin-left: -7em;
+}
+
+/* much bigger lines for main person parents - need a way to automate this, maybe with attr()... */
+.🌳 > li > ol::before {
+  /* only needs to be 4 if we have 2 generations up */
+  width: 4em; /* based on http://www.clarkeology.com/names/clarke/79/charles+valentine */
+}
+
+.🌳 > li > ol::after {
+  /* only needs to be 6 if we have 2 generations up */
+  width: 6em; /* based on http://www.clarkeology.com/names/clarke/79/charles+valentine */
+}
+
+.🌳.🧓🧓🧓 > li > ol::before,
+.🌳.🧓🧓🧓 > li > ol::after {
+  /* needs to be 12 if we have 3 generations up */
+  width: 12em; /* based on http://www.clarkeology.com/names/clarke/79/charles+valentine */
+}
+
+/* bigger lines for grandparents - need a way to automate this, maybe with attr()... */
+.🌳 > li > ul > li > a::before {
+  width: 60%;
+}
+.🌳 > li > ul > li > a::after {
+  width: 100%;
+}
+
+.🌳.🧓🧓🧓 > li > ul > li > a::before {
+  width: 100%;
+}
+
+/* no lines from top of tree - is there a better way to automate this..? */
+.🌳 .end-node a::before,
+.🌳 .end-node a::after {
+  content: none;
+}
+
+/* Remove left connector from first child and right connector from last child */
+.🌳 ol li:first-child::before {
+  border: none;
+}
+.🌳 ol li:last-child::after {
+  width: 0;
+}
+
+/* arrow up at top of those with more parents to show */
+/* .🌳 div.🧓 > a::before,
+.🌳 div.🧓 > a::after, */ /* spouse */
+.🌳 li ul .🧓 > a::before,
+.🌳 li ul .🧓 > a::after {
+  top: -28px;
+  bottom: 100%;
+  left: 50%;
+  border: solid transparent;
+  content: '';
+  height: 0;
+  width: 0;
+  position: absolute;
+}
+/* .🌳 div.🧓 > a::after, */ /* spouse */
+.🌳 li ul .🧓 > a::after {
+  border-bottom-color: #fff;
+  border-width: 16px;
+  margin-left: -16px;
+  z-index: 2;
+}
+/* .🌳 div.🧓 > a::before, */ /* spouse */
+.🌳 li ul .🧓 > a::before {
+  border-bottom-color: #ccc;
+  border-width: 14px;
+  margin-left: -14px;
+}
+
+/* arrow down at bottom of those with more children to show */
+.🌳 ol .🧒.end-node > a::before,
+.🌳 ol .🧒.end-node > a::after {
+  top: 100%;
+  bottom: 28px;
+  left: 50%;
+  border: solid transparent;
+  content: '';
+  height: 0;
+  width: 0;
+  position: absolute;
+}
+.🌳 ol .🧒.end-node > a::after {
+  border-top-color: #fff;
+  border-width: 14px;
+  margin-left: -14px;
+  z-index: 2;
+}
+.🌳 ol .🧒.end-node > a::before {
+  border-top-color: #ccc;
+  border-width: 16px;
+  margin-left: -16px;
+}
