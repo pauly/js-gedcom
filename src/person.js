@@ -352,7 +352,7 @@ Person.prototype.spouses = function () {
   return this._spouses
 }
 
-Person.prototype.htmlTree = (levelsOfChildren = 2, levelsOfParents = 2) {
+Person.prototype.htmlTree = function (levelsOfChildren = 2, levelsOfParents = 2) {
   // pass in parents and children only for the core person
   // ⚠️ if you build more than 2 levels it makes the dom tree too deep
   // 💅 awesome css below... if a tree with 2 levels of parents and 2 of children
