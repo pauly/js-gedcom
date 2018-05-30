@@ -10,7 +10,7 @@ const Person = module.exports = function (id, gedcom) {
 }
 
 Person.generationsToName = 10
-Person.estimatedAgeOfGeneration = 22
+Person.estimatedAgeOfGeneration = 28
 Person.privateSurname = '[PRIVATE]'
 Person.unknownSurname = 'unknown'
 Person.baseurl = ''
@@ -111,6 +111,17 @@ Person._id = id => {
 
 Person.prototype.id = function () {
   return (`${this.data('_ID')}`).replace(/[^0-9]/g, '')
+}
+
+Person.prototype.dateOfBirth = function () {
+  const type = 'BIRT'
+  let match = null
+  if (this.data(type).DATE) {
+    const time = moment(this.data(type).DATE[0], 'YYYY-MM-DD')
+    const date = (time && time.isValid()) ? time.format('YYYY-MM-DD') : this.data(type).DATE[0]
+    match = /(\d{4}-\d\d-\d\d)/.exec(date)
+  }
+  return (match && match[1]) || '0000-01-01'
 }
 
 Person._trim = string => (`${string}`).replace(/^ +/, '').replace(/ +$/, '')
@@ -354,9 +365,16 @@ Person.prototype.spouses = function () {
 
 Person.prototype.htmlTree = function (levelsOfChildren = 2, levelsOfParents = 2) {
   // pass in parents and children only for the core person
-  // ⚠️ if you build more than 2 levels it makes the dom tree too deep
+  // ⚠️ if you build more than 3 levels it makes the dom tree too deep
   // 💅 awesome css below... if a tree with 2 levels of parents and 2 of children
   // add a class of "🌳 🧓🧓 🧒🧒"
+
+  // @todo automatically recurse this, add classes to li instead?
+  if (levelsOfParents > 2) {
+    if (!this.father().father().id() && !this.father().mother().id() && !this.mother().father().id() && !this.mother().mother().id()) levelsOfParents = 2
+    if (!this.father().id() && !this.mother().id()) levelsOfParents = 1
+  }
+
   return `<ul class="🌳 ${'🧓'.repeat(levelsOfParents)} ${'🧒'.repeat(levelsOfChildren)}">
     ${this.li(null, levelsOfChildren, levelsOfParents)}
   </ul>`
