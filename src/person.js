@@ -157,7 +157,7 @@ Person.prototype._partOfName = function (part, link, years) {
   return html
 }
 
-Person.prototype._urlise = text => (`${text}`).replace(/\s+/g, '-').replace(/[^\w'-]/g, '').replace(/'/g, '%27').toLowerCase()
+Person.prototype._urlise = text => (`${text}`).replace(/\W+/g, '-').toLowerCase()
 
 Person.prototype.link = function () {
   // @todo let /names/ be configurable
@@ -189,6 +189,10 @@ Person.prototype._year = function (type, html) {
   if (match) {
     if (html && (type === 'BIRT' || type === 'DEAT')) {
       const itemprop = type === 'BIRT' ? 'birthDate' : 'deathDate'
+      try {
+        date = (new Date(date)).toISOString().substr(0, 10)
+      } catch (e) {
+      }
       return `<time itemprop="${itemprop}" datetime="${date}">${match[1]}</time>`
     }
     return match[1]
