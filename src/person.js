@@ -184,7 +184,7 @@ Person.prototype._year = function (type, html) {
   if (!type) type = 'BIRT'
   if (!this.data(type).DATE) return ''
   const time = moment(this.data(type).DATE[0], 'YYYY-MM-DD')
-  const date = (time && time.isValid()) ? time.format('YYYY-MM-DD') : this.data(type).DATE[0]
+  let date = (time && time.isValid()) ? time.format('YYYY-MM-DD') : this.data(type).DATE[0]
   const match = /(\d{4})(-(\d\d)-(\d\d))?/.exec(date)
   if (match) {
     if (html && (type === 'BIRT' || type === 'DEAT')) {
