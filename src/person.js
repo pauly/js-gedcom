@@ -192,6 +192,7 @@ Person.prototype._year = function (type, html) {
       try {
         date = (new Date(date)).toISOString().substr(0, 10)
       } catch (e) {
+        // console.log({ date, type, e })
       }
       return `<time itemprop="${itemprop}" datetime="${date}">${match[1]}</time>`
     }
@@ -816,5 +817,8 @@ Person.prototype.page = function (levelsOfChildren, levelsOfParents) {
   prose.push(this.descendentStats())
   prose.push(this.nameStats())
   parts.push(prose.join(''))
-  return parts.reduce((html, content) => `${html}<p>${content}</p>`, '')
+  return parts.reduce((html, content) => {
+    if (!/<\w/.test(content)) content = `<p>${content}</p>`
+    return html + content
+  }, '')
 }
