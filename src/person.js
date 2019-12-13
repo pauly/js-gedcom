@@ -771,7 +771,7 @@ Person.prototype.nameStats = function () {
     prose.push(`, including ${countBySurname[lowerCaseSurname]} called ${this.surname()}. `)
   }
   if (surnamePopularity.indexOf(lowerCaseSurname) < 10) {
-    prose.push(`${this.surname()} is the ${Person.ordinalSuperlative(surnamePopularity.indexOf(lowerCaseSurname) + 1, 'most common')} name in our tree. `)
+    prose.push(`${this.surname()} is the ${Person.ordinalSuperlative(surnamePopularity.indexOf(lowerCaseSurname) + 1, 'most common')} name in our family tree. `)
   }
   return prose.join('')
 }

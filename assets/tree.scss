@@ -10,6 +10,7 @@
   padding: 0;
   position: relative;
   white-space: nowrap; /* don't want tree nodes wrapping */
+  overflow: scroll; /* for wide family trees */
 }
 
 .🌳 ol {
@@ -125,9 +126,15 @@
 }
 
 /* can we squeeze siblings without children showing up a bit, as their children won't overlap */
+/* ACTUALLY without spouse here, so @todo fix that */
 .🌳 li:not(.👫):not(:first-child) + .👫 {
   margin-left: -7em;
 }
+
+/* can we squeeze the first child up slightly too? */
+/* .🌳 li:first-child:not(.👫) + .👫 {
+  margin-left: -2em;
+} */
 
 /* much bigger lines for main person parents - need a way to automate this, maybe with attr()... */
 .🌳 > li > ol::before {
@@ -136,8 +143,13 @@
 }
 
 .🌳 > li > ol::after {
-  /* only needs to be 6 if we have 2 generations up */
+  /* only needs to be 6 if we have 2 generations up - assume 2 is the default */
   width: 6em; /* based on http://www.clarkeology.com/names/clarke/79/charles+valentine */
+}
+
+.🌳.🧓 > li > ol::after {
+  /* only needs to be 2 if we have 1 generations up */
+  width: 2em;
 }
 
 .🌳.🧓🧓🧓 > li > ol::before,
