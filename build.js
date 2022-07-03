@@ -4,7 +4,7 @@
 var mysql = require('mysql')
 var Person = require('./src/person')
 if (process.argv.length !== 3) {
-  throw 'usage: npm run build -- [location of your gedcom file]'
+  throw new Error('usage: npm run build -- [location of your gedcom file]')
 }
 Person.owner = (process.env.GEDCOM_OWNER || 'I1').split(/,\n*/)
 
@@ -16,7 +16,7 @@ Person.parse(process.argv[2], function (err, gedcom) {
   if (process.env.LEVELS) {
     console.log('<link rel="stylesheet" type="text/css" href="http://www.clarkeology.com/css/tree' + process.env.LEVELS + 'gen.css" />')
   }
-  console.log('<meta name="description" content="' + process.env.npm_package_description.replace(/"/g, '&quot;') + '" /><link rel="canonical" href="http://www.clarkeology.com/names/clarke/7/paul+leslie" />')
+  console.log('<meta name="description" content="' + String(process.env.npm_package_description).replace(/"/g, '&quot;') + '" /><link rel="canonical" href="http://www.clarkeology.com/names/clarke/7/paul+leslie" />')
   console.log('</head><body>')
   console.log('<p><a href="' + process.env.npm_package_homepage + '">' + process.env.npm_package_name + '</a>, a project on github...</p>')
 

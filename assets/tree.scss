@@ -10,9 +10,11 @@
   padding: 0;
   position: relative;
   white-space: nowrap; /* don't want tree nodes wrapping */
+  /* overflow: scroll; */ /* would be for  wide family trees, but stops the "before" styling for line drawing working */
+}
+.🌳 {
   overflow: scroll; /* for wide family trees */
 }
-
 .🌳 ol {
   padding: 2em 0 0 0;
 }
@@ -29,6 +31,13 @@
 .🌳 ol > li > a {
   margin: 0 1em 0;
 }
+
+.🌳 span[itemprop=name] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
 .🌳 div[itemprop=spouse], /* styling for spouse <div itemprop="spouse"> - as we're using microformats */
 .🌳 li {
   white-space: normal; /* undo the nowrap we applied earlier */
@@ -41,7 +50,7 @@
 .🌳 div[itemprop=spouse] > a,
 .🌳 li > a {
   background: #fff;
-  max-width: 5em;
+  width: 5em;
   padding: 0.5em;
   height: 6em;
   font-size: 0.8em;
@@ -171,8 +180,8 @@
 }
 
 /* no lines from top of tree - is there a better way to automate this..? */
-.🌳 .end-node a::before,
-.🌳 .end-node a::after {
+.🌳 .🔚 a::before,
+.🌳 .🔚 a::after {
   content: none;
 }
 
@@ -213,8 +222,8 @@
 }
 
 /* arrow down at bottom of those with more children to show */
-.🌳 ol .🧒.end-node > a::before,
-.🌳 ol .🧒.end-node > a::after {
+.🌳 ol .🧒.🔚 > a::before,
+.🌳 ol .🧒.🔚 > a::after {
   top: 100%;
   bottom: 28px;
   left: 50%;
@@ -224,13 +233,13 @@
   width: 0;
   position: absolute;
 }
-.🌳 ol .🧒.end-node > a::after {
+.🌳 ol .🧒.🔚 > a::after {
   border-top-color: #fff;
   border-width: 14px;
   margin-left: -14px;
   z-index: 2;
 }
-.🌳 ol .🧒.end-node > a::before {
+.🌳 ol .🧒.🔚 > a::before {
   border-top-color: #ccc;
   border-width: 16px;
   margin-left: -16px;

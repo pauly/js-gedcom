@@ -419,7 +419,7 @@ Person.prototype.li = function (relationship, levelsOfChildren, levelsOfParents)
     </ol>`
   }
   if (!children && !levelsOfParents) {
-    classes.push('end-node')
+    classes.push('🔚')
     if (!this.isPrivate()) {
       if (this.children().length) classes.push('🧒')
       if (this.father().id() || this.mother().id()) classes.push('🧓')
@@ -679,34 +679,42 @@ Person.prototype.note = ids => {
 Person.prototype.notes = function () {
   if (!this._data.NOTE) return null // @todo
   const notes = []
-  this._data.NOTE.NOTE.forEach(id => { // @todo
+  if (Number(this.id()) === 7) console.warn(this._data) // @todo fix
+  this._data.NOTE.NOTE.forEach((id, index) => { // @todo
     id = Person._id(id)
-    if (!Person._gedcom.NOTE || !(id in Person._gedcom.NOTE)) {
-      notes.push(id)
-      return
-    }
-    if (Person._gedcom.NOTE[id].CONT) {
-      let text = ''
-      Person._gedcom.NOTE[id].CONT.CONT.forEach((note, key) => {
-        text += `<br /> ${note}`
-        if (Person._gedcom.NOTE[id].CONC) {
-          if (Person._gedcom.NOTE[id].CONC.CONC) {
-            if (Person._gedcom.NOTE[id].CONC.CONC[key]) {
-              text += Person._gedcom.NOTE[id].CONC.CONC[key]
+    if (Person._gedcom.NOTE && id in Person._gedcom.NOTE) {
+      console.warn(id, 'is a reference')
+      if (Person._gedcom.NOTE[id].CONT) {
+        let text = ''
+        Person._gedcom.NOTE[id].CONT.CONT.forEach((note, key) => {
+          text += `<br /> ${note}`
+          if (Person._gedcom.NOTE[id].CONC) {
+            if (Person._gedcom.NOTE[id].CONC.CONC) {
+              if (Person._gedcom.NOTE[id].CONC.CONC[key]) {
+                text += Person._gedcom.NOTE[id].CONC.CONC[key]
+              }
             }
           }
-        }
-      })
-      notes.push(text)
-    } else {
-      if (Person._gedcom.NOTE[id].CONC) {
+        })
+        notes.push(text)
+      } else if (Person._gedcom.NOTE[id].CONC) {
         notes.push(Person._gedcom.NOTE[id].CONC.CONC.join(''))
-      } else {
-        console.log(`hmm no CONT or CONC in ${JSON.stringify(Person._gedcom.NOTE[id])}`)
+      } else console.log(`hmm no CONT or CONC in ${JSON.stringify(Person._gedcom.NOTE[id])}`)
+    } else {
+      if (Number(this.id()) === 7) console.warn('pushing', { index, id, 'conc?': this._data.NOTE.CONC[index] })
+      notes.push(id)
+      if (this._data.NOTE.CONC) {
+        notes.push(this._data.NOTE.CONC[index])
+        notes.splice(index, 1)
       }
     }
   })
-  return Person.stripTags(notes.join(''))
+  if (Number(this.id()) === 7) console.warn('before CONC notes:', notes)
+  if (this._data.NOTE.CONC) { // in case there is any left
+    this._data.NOTE.CONC.forEach(line => notes.push(line))
+  }
+  if (Number(this.id()) === 7) console.warn(notes)
+  return Person.stripTags(notes.filter(Boolean).join(''))
 }
 
 Person.prototype.howFarBack = function (prefix) {
@@ -786,8 +794,8 @@ Person.prototype.page = function (levelsOfChildren, levelsOfParents) {
       const content = this.timeAndPlace(tag, true)
       if (content) parts.push(content)
     })
-    if (this.notes()) parts.push(this.notes())
-    if (this.will()) parts.push(this.will())
+    if (this.notes()) parts.push(this.notes().replace(/ & /g, ' &amp; ')) // @todo fix
+    if (this.will()) parts.push(`<p>${this.will()}</p>`)
   }
   parts.push(this.htmlTree(levelsOfChildren, levelsOfParents))
   // if (this._data.SOUR) parts.push('Source: ' + this.source(this.data('SOUR').SOUR)); // @todo
