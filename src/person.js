@@ -679,7 +679,7 @@ Person.prototype.note = ids => {
 Person.prototype.notes = function () {
   if (!this._data.NOTE) return null // @todo
   const notes = []
-  if (Number(this.id()) === 7) console.warn(this._data) // @todo fix
+  // if (Number(this.id()) === 41) console.warn(this._data) // @todo fix
   this._data.NOTE.NOTE.forEach((id, index) => { // @todo
     id = Person._id(id)
     if (Person._gedcom.NOTE && id in Person._gedcom.NOTE) {
@@ -701,19 +701,18 @@ Person.prototype.notes = function () {
         notes.push(Person._gedcom.NOTE[id].CONC.CONC.join(''))
       } else console.log(`hmm no CONT or CONC in ${JSON.stringify(Person._gedcom.NOTE[id])}`)
     } else {
-      if (Number(this.id()) === 7) console.warn('pushing', { index, id, 'conc?': this._data.NOTE.CONC[index] })
+      // if (Number(this.id()) === 41) console.warn('pushing', { index, id, 'conc?': this._data.NOTE.CONC[index] })
       notes.push(id)
       if (this._data.NOTE.CONC) {
         notes.push(this._data.NOTE.CONC[index])
-        notes.splice(index, 1)
       }
     }
   })
-  if (Number(this.id()) === 7) console.warn('before CONC notes:', notes)
-  if (this._data.NOTE.CONC) { // in case there is any left
+  // if (Number(this.id()) === 41) console.warn('before CONC notes:', notes, this._data.NOTE.NOTE, this._data.NOTE.CONC)
+  if (this._data.NOTE.CONC && this._data.NOTE.CONC.length > this._data.NOTE.NOTE.lengt) { // in case there is any left
     this._data.NOTE.CONC.forEach(line => notes.push(line))
   }
-  if (Number(this.id()) === 7) console.warn(notes)
+  // if (Number(this.id()) === 41) console.warn(notes)
   return Person.stripTags(notes.filter(Boolean).join(''))
 }
 
